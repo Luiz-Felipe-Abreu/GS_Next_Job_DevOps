@@ -1,24 +1,234 @@
 trigger:
-- main
+  - main
 
-pool:
-  vmImage: 'ubuntu-latest'
+variables:
+  - group: nextjob-secrets  # Importa variáveis secretas do Variable Group
+  - name: GRADLE_USER_HOME
+    value: $(Pipeline.Workspace)/.gradle
+  - name: AZURE_LOCATION
+    value: eastus
+  - name: RESOURCE_GROUP
+    value: rg-nextjob-rm555197
+  - name: ACR_NAME
+    value: acrnextjobrm555197
+  - name: ACR_LOGIN_SERVER
+    value: acrnextjobrm555197.azurecr.io
+  - name: IMAGE_NAME
+    value: appnextjob
+  - name: IMAGE_TAG
+    value: latest
+  - name: RM
+    value: "555197"
+  - name: azureSubscription
+    value: AzureNextJob
 
-steps:
-- checkout: self
+stages:
+  # ============================================================
+  # CI - Build & Test
+  # ============================================================
+  - stage: Build
+    displayName: "CI - Build e Testes"
+    jobs:
+      - job: gradleBuild
+        displayName: "Gradle Build"
+        pool:
+          vmImage: ubuntu-latest
 
-- script: echo "🚀 Iniciando pipeline no Azure DevOps..."
-  displayName: 'Início da pipeline'
+        steps:
+          - task: Cache@2
+            inputs:
+              key: 'gradle | "$(Agent.OS)" | **/*.gradle*'
+              restoreKeys: |
+                gradle | "$(Agent.OS)"
+                gradle
+              path: $(GRADLE_USER_HOME)
+            displayName: "Cache Gradle"
 
-- script: |
-    echo "🔧 Etapa de build (simulação)"
-    echo "Executando comandos fictícios..."
-  displayName: 'Build do projeto'
+          - task: Gradle@4
+            inputs:
+              gradleWrapperFile: "gradlew"
+              tasks: "build"
+              options: "--build-cache -Dspring.profiles.active=test"
+              publishJUnitResults: true
+              testResultsFiles: "**/TEST-*.xml"
+              javaHomeOption: "JDKVersion"
+              sonarQubeRunAnalysis: false
+            displayName: "Executar build com Gradle"
 
-- script: |
-    echo "🧪 Etapa de testes (simulação)"
-    echo "Sem testes definidos ainda"
-  displayName: 'Rodar testes'
+          - script: ./gradlew --stop
+            displayName: "Finalizar daemon Gradle"
 
-- script: echo "✅ Pipeline executada com sucesso!"
-  displayName: 'Finalização'
+          - task: CopyFiles@2
+            displayName: "Copiar artefatos para staging"
+            inputs:
+              SourceFolder: "$(System.DefaultWorkingDirectory)"
+              Contents: "**/build/libs/*.jar"
+              TargetFolder: $(Build.ArtifactStagingDirectory)
+
+          - task: PublishBuildArtifacts@1
+            displayName: "Publicar Artefato JAR"
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+              ArtifactName: 'NextJobApp'
+              publishLocation: 'Container'
+
+      - job: BuildAndPushImage
+        displayName: "Build e Push da imagem Docker"
+        pool:
+          vmImage: ubuntu-latest
+        dependsOn: gradleBuild
+        condition: succeeded()
+        steps:
+          - task: Docker@2
+            inputs:
+              command: login
+              containerRegistry: nextjobservice
+            displayName: "Login no ACR"
+
+          - task: Docker@2
+            inputs:
+              command: buildAndPush
+              containerRegistry: nextjobservice
+              repository: appnextjob
+              Dockerfile: '**/Dockerfile'
+              tags: |
+                latest
+                $(Build.BuildId)
+            displayName: "Build e Push da imagem Docker"
+
+  # ============================================================
+  # CD - Release & Deploy (Automático)
+  # ============================================================
+  - stage: Release
+    displayName: "CD - Release para Azure Container Instances"
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: DeployDatabase
+        displayName: "Deploy PostgreSQL Database"
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+                
+                - task: AzureCLI@2
+                  displayName: "Deploy PostgreSQL Container"
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      
+                      DB_CONTAINER_NAME="aci-db-nextjob-rm$(RM)"
+                      DB_DNS_LABEL="aci-db-nextjob-rm$(RM)"
+                      DB_IMAGE="postgres:17-alpine"
+                      
+                      echo "🐘 Verificando PostgreSQL Container..."
+                      
+                      # Verificar se já existe
+                      EXISTING=$(az container list \
+                        --resource-group "$(RESOURCE_GROUP)" \
+                        --query "[?name=='$DB_CONTAINER_NAME'].name" -o tsv)
+                      
+                      if [ -z "$EXISTING" ]; then
+                        echo "🚀 Criando PostgreSQL Container..."
+                        az container create \
+                          --resource-group "$(RESOURCE_GROUP)" \
+                          --name "$DB_CONTAINER_NAME" \
+                          --image "$DB_IMAGE" \
+                          --cpu 1 --memory 1.5 \
+                          --environment-variables \
+                            POSTGRES_DB="$(DB_NAME)" \
+                            POSTGRES_USER="$(DB_USER)" \
+                            POSTGRES_PASSWORD="$(DB_PASSWORD)" \
+                          --ports 5432 \
+                          --dns-name-label "$DB_DNS_LABEL" \
+                          --location "$(AZURE_LOCATION)" \
+                          --os-type Linux \
+                          --restart-policy Always
+                        
+                        echo "✅ PostgreSQL Container criado!"
+                      else
+                        echo "ℹ️  PostgreSQL Container já existe. Pulando criação."
+                      fi
+                      
+                      DB_FQDN=$(az container show \
+                        --resource-group "$(RESOURCE_GROUP)" \
+                        --name "$DB_CONTAINER_NAME" \
+                        --query ipAddress.fqdn -o tsv)
+                      
+                      echo "✅ PostgreSQL disponível em: $DB_FQDN:5432"
+
+      - deployment: DeployApplication
+        displayName: "Deploy NextJob Application"
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'production'
+        dependsOn: DeployDatabase
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: none
+
+                - task: AzureCLI@2
+                  displayName: "Deploy Application Container"
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+
+                      echo "🌎 Usando resource group: $(RESOURCE_GROUP) em $(AZURE_LOCATION)"
+
+                      # Obter credenciais do ACR
+                      echo "🔐 Obtendo credenciais do ACR..."
+                      ACR_USERNAME=$(az acr credential show -n "$(ACR_NAME)" --query username -o tsv)
+                      ACR_PASSWORD=$(az acr credential show -n "$(ACR_NAME)" --query "passwords[0].value" -o tsv)
+
+                      APP_CONTAINER_NAME="aci-app-nextjob-rm$(RM)"
+                      APP_DNS_LABEL="aci-app-nextjob-rm$(RM)"
+                      APP_IMAGE="$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)"
+                      
+                      DB_FQDN="aci-db-nextjob-rm$(RM).$(AZURE_LOCATION).azurecontainer.io"
+                      DATASOURCE_URL="jdbc:postgresql://$DB_FQDN:5432/$(DB_NAME)"
+
+                      echo "🧹 Limpando container anterior (se existir)..."
+                      az container delete --resource-group "$(RESOURCE_GROUP)" --name "$APP_CONTAINER_NAME" --yes || true
+                      sleep 10
+
+                      echo "🚀 Criando novo container com imagem: $APP_IMAGE"
+                      az container create \
+                        --resource-group "$(RESOURCE_GROUP)" \
+                        --name "$APP_CONTAINER_NAME" \
+                        --image "$APP_IMAGE" \
+                        --cpu 1 --memory 1 \
+                        --registry-login-server "$(ACR_LOGIN_SERVER)" \
+                        --registry-username "$ACR_USERNAME" \
+                        --registry-password "$ACR_PASSWORD" \
+                        --environment-variables \
+                          SPRING_DATASOURCE_URL="$DATASOURCE_URL" \
+                          SPRING_DATASOURCE_USERNAME="$(DB_USER)" \
+                          SPRING_DATASOURCE_PASSWORD="$(DB_PASSWORD)" \
+                          SPRING_JPA_HIBERNATE_DDL_AUTO=update \
+                        --ports 8080 \
+                        --os-type Linux \
+                        --dns-name-label "$APP_DNS_LABEL" \
+                        --location "$(AZURE_LOCATION)" \
+                        --restart-policy Always
+
+                      APP_URL="http://$APP_DNS_LABEL.$(AZURE_LOCATION).azurecontainer.io:8080"
+                      
+                      echo ""
+                      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                      echo "✅ Aplicação NextJob implantada com sucesso!"
+                      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                      echo "🌐 URL: $APP_URL"
+                      echo "🐘 Database: $DB_FQDN:5432"
+                      echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
