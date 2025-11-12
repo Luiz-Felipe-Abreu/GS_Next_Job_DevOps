@@ -1,0 +1,24 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- checkout: self
+
+- script: echo "🚀 Iniciando pipeline no Azure DevOps..."
+  displayName: 'Início da pipeline'
+
+- script: |
+    echo "🔧 Etapa de build (simulação)"
+    echo "Executando comandos fictícios..."
+  displayName: 'Build do projeto'
+
+- script: |
+    echo "🧪 Etapa de testes (simulação)"
+    echo "Sem testes definidos ainda"
+  displayName: 'Rodar testes'
+
+- script: echo "✅ Pipeline executada com sucesso!"
+  displayName: 'Finalização'
