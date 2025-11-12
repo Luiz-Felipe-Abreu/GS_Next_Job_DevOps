@@ -126,9 +126,13 @@ stages:
                       
                       DB_CONTAINER_NAME="aci-db-nextjob-rm$(RM)"
                       DB_DNS_LABEL="aci-db-nextjob-rm$(RM)"
-                      DB_IMAGE="postgres:17-alpine"
+                      DB_IMAGE="$(ACR_LOGIN_SERVER)/postgres:17-alpine"
                       
                       echo "🐘 Verificando PostgreSQL Container..."
+                      
+                      # Obter credenciais do ACR
+                      ACR_USERNAME=$(az acr credential show -n "$(ACR_NAME)" --query username -o tsv)
+                      ACR_PASSWORD=$(az acr credential show -n "$(ACR_NAME)" --query "passwords[0].value" -o tsv)
                       
                       # Verificar se já existe
                       EXISTING=$(az container list \
@@ -136,12 +140,15 @@ stages:
                         --query "[?name=='$DB_CONTAINER_NAME'].name" -o tsv)
                       
                       if [ -z "$EXISTING" ]; then
-                        echo "🚀 Criando PostgreSQL Container..."
+                        echo "🚀 Criando PostgreSQL Container usando imagem do ACR..."
                         az container create \
                           --resource-group "$(RESOURCE_GROUP)" \
                           --name "$DB_CONTAINER_NAME" \
                           --image "$DB_IMAGE" \
                           --cpu 1 --memory 1.5 \
+                          --registry-login-server "$(ACR_LOGIN_SERVER)" \
+                          --registry-username "$ACR_USERNAME" \
+                          --registry-password "$ACR_PASSWORD" \
                           --environment-variables \
                             POSTGRES_DB="$(DB_NAME)" \
                             POSTGRES_USER="$(DB_USER)" \
