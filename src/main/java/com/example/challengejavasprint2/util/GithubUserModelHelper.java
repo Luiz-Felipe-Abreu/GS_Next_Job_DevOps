@@ -1,29 +1,27 @@
 package com.example.challengejavasprint2.util;
 
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.ui.Model;
 
 public class GithubUserModelHelper {
     public static void addGithubUserInfo(Model model, Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof OAuth2User oauth2User) {
-            model.addAttribute("githubUser", oauth2User);
-            model.addAttribute("userAvatar", oauth2User.getAttribute("avatar_url"));
-            model.addAttribute("userName", oauth2User.getAttribute("name"));
-            model.addAttribute("userLogin", oauth2User.getAttribute("login"));
+        // OAuth2 removido - método mantido para compatibilidade mas não faz nada
+        if (authentication != null) {
+            model.addAttribute("userName", authentication.getName());
+            model.addAttribute("userLogin", authentication.getName());
         }
     }
 
     public static String getGithubUsername(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof OAuth2User oauth2User) {
-            return oauth2User.getAttribute("login");
+        if (authentication != null) {
+            return authentication.getName();
         }
         return null;
     }
 
     public static String getGithubName(Authentication authentication) {
-        if (authentication != null && authentication.getPrincipal() instanceof OAuth2User oauth2User) {
-            return oauth2User.getAttribute("name");
+        if (authentication != null) {
+            return authentication.getName();
         }
         return null;
     }
