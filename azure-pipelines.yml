@@ -3,18 +3,28 @@ trigger:
 
 variables:
   - group: nextjob-secrets  # Importa variáveis secretas do Variable Group
-  # Variáveis globais
-  AZURE_SUBSCRIPTION: 'AzureNextJob'
-  RESOURCE_GROUP: 'rg-nextjob-rm555197'
-  LOCATION: 'eastus'
-  ACR_NAME: 'acrnextjobrm555197'
-  ACR_LOGIN_SERVER: 'acrnextjobrm555197.azurecr.io'
-  IMAGE_NAME: 'appnextjob'
-  IMAGE_TAG: 'latest'
-  APP_NAME: 'aci-app-nextjob-rm555197'
-  DB_USER: 'nextjob'
-  DB_NAME: 'nextjob'
-  RM: '555197'
+  - name: AZURE_SUBSCRIPTION
+    value: 'AzureNextJob'
+  - name: RESOURCE_GROUP
+    value: 'rg-nextjob-rm555197'
+  - name: LOCATION
+    value: 'eastus'
+  - name: ACR_NAME
+    value: 'acrnextjobrm555197'
+  - name: ACR_LOGIN_SERVER
+    value: 'acrnextjobrm555197.azurecr.io'
+  - name: IMAGE_NAME
+    value: 'appnextjob'
+  - name: IMAGE_TAG
+    value: 'latest'
+  - name: APP_NAME
+    value: 'aci-app-nextjob-rm555197'
+  - name: DB_USER
+    value: 'nextjob'
+  - name: DB_NAME
+    value: 'nextjob'
+  - name: RM
+    value: '555197'
 
 stages:
 # ===============================================================
