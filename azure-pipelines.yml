@@ -45,6 +45,9 @@ stages:
             inputs:
               key: 'gradle | "$(Agent.OS)" | **/*.gradle*'
               path: $(Pipeline.Workspace)/.gradle
+              restoreKeys: |
+                gradle | "$(Agent.OS)"
+            continueOnError: true
 
           # Build e Testes
           - task: Gradle@4
