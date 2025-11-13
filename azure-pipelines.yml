@@ -19,14 +19,21 @@ variables:
     value: 'latest'
   - name: APP_NAME
     value: 'aci-app-nextjob-rm555197'
+  - name: DB_CONTAINER_NAME
+    value: 'aci-postgres-nextjob-rm555197'
+  - name: DB_IMAGE
+    value: 'acrnextjobrm555197.azurecr.io/postgres:14'
   - name: DB_USER
     value: 'nextjob'
   - name: DB_NAME
+    value: 'nextjob'
+  - name: DB_PASSWORD
     value: 'nextjob'
   - name: RM
     value: '555197'
 
 stages:
+
 # ===============================================================
 # 1️⃣ - BUILD & TEST (CI)
 # ===============================================================
@@ -39,7 +46,6 @@ stages:
         steps:
           - checkout: self
 
-          # Cache do Gradle
           - task: Cache@2
             displayName: "Cache Gradle dependencies"
             inputs:
@@ -49,7 +55,6 @@ stages:
                 gradle | "$(Agent.OS)"
             continueOnError: true
 
-          # Build e Testes
           - task: Gradle@4
             displayName: "Run build and tests"
             inputs:
@@ -59,7 +64,6 @@ stages:
               publishJUnitResults: true
               testResultsFiles: '**/TEST-*.xml'
 
-          # Publicar artefato do JAR
           - task: CopyFiles@2
             displayName: "Copy Build Artifact"
             inputs:
@@ -101,10 +105,10 @@ stages:
               dockerfile: '**/Dockerfile'
 
 # ===============================================================
-# 3️⃣ - DEPLOY (CD AUTOMÁTICO)
+# 3️⃣ - DEPLOY DO APP + POSTGRES
 # ===============================================================
   - stage: Deploy
-    displayName: "Deploy to Azure Container Instances"
+    displayName: "Deploy App + Postgres to ACI"
     dependsOn: PublishImage
     condition: succeeded()
     jobs:
@@ -113,7 +117,7 @@ stages:
           vmImage: ubuntu-latest
         steps:
           - task: AzureCLI@2
-            displayName: "Deploy to ACI"
+            displayName: "Deploy Postgres + App"
             inputs:
               azureSubscription: '$(AZURE_SUBSCRIPTION)'
               scriptType: bash
@@ -121,38 +125,73 @@ stages:
               inlineScript: |
                 set -e
 
-                echo "Starting deploy to Azure Container Instance..."
+                echo "=============================="
+                echo " Deploying PostgreSQL Container"
+                echo "=============================="
 
-                APP_IMAGE="$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)"
-                APP_CONTAINER_NAME="$(APP_NAME)"
-                APP_DNS_LABEL="$(APP_NAME)"
+                # Remover container antigo
+                az container delete \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --name $(DB_CONTAINER_NAME) \
+                  --yes || true
 
-                # Remover container anterior se existir
-                az container delete --resource-group $(RESOURCE_GROUP) --name $APP_CONTAINER_NAME --yes || true
-                sleep 10
+                sleep 5
 
-                # Criar container
+                # Criar container do Postgres
                 az container create \
                   --resource-group $(RESOURCE_GROUP) \
-                  --name $APP_CONTAINER_NAME \
+                  --name $(DB_CONTAINER_NAME) \
+                  --image $(DB_IMAGE) \
+                  --cpu 2 --memory 4 \
+                  --registry-login-server $(ACR_LOGIN_SERVER) \
+                  --registry-username $(ACR_USERNAME) \
+                  --registry-password $(ACR_PASSWORD) \
+                  --ports 5432 \
+                  --environment-variables \
+                    POSTGRES_USER=$(DB_USER) \
+                    POSTGRES_PASSWORD=$(DB_PASSWORD) \
+                    POSTGRES_DB=$(DB_NAME) \
+                  --os-type Linux \
+                  --restart-policy always
+
+                echo "Postgres deployed successfully!"
+
+                echo "=============================="
+                echo " Deploying Application Container"
+                echo "=============================="
+
+                APP_IMAGE="$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)"
+
+                # Remover app antigo
+                az container delete \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --name $(APP_NAME) \
+                  --yes || true
+
+                sleep 8
+
+                # Criar app
+                az container create \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --name $(APP_NAME) \
                   --image $APP_IMAGE \
                   --cpu 1 --memory 1.5 \
                   --registry-login-server $(ACR_LOGIN_SERVER) \
                   --registry-username $(ACR_USERNAME) \
                   --registry-password $(ACR_PASSWORD) \
                   --environment-variables \
-                    DATABASE_URL="$(SPRING_DATASOURCE_URL)" \
-                    DATABASE_USERNAME="$(DB_USER)" \
-                    DATABASE_PASSWORD="$(DB_PASSWORD)" \
-                    SPRING_JPA_HIBERNATE_DDL_AUTO=validate \
                     SPRING_PROFILES_ACTIVE=prod \
-                    GITHUB_CLIENT_ID="$(GITHUB_CLIENT_ID)" \
-                    GITHUB_CLIENT_SECRET="$(GITHUB_CLIENT_SECRET)" \
+                    SPRING_DATASOURCE_URL="jdbc:postgresql://$(DB_CONTAINER_NAME):5432/$(DB_NAME)" \
+                    SPRING_DATASOURCE_USERNAME=$(DB_USER) \
+                    SPRING_DATASOURCE_PASSWORD=$(DB_PASSWORD) \
                   --ports 8080 \
-                  --os-type Linux \
-                  --dns-name-label $APP_DNS_LABEL \
+                  --dns-name-label $(APP_NAME) \
                   --location $(LOCATION) \
+                  --os-type Linux \
                   --restart-policy always
 
-                echo "✅ Deploy complete! Access your app at:"
-                echo "👉 http://$APP_DNS_LABEL.$(LOCATION).azurecontainer.io:8080"
+                echo "====================================="
+                echo " Deploy Complete!"
+                echo " App disponível em:"
+                echo " 👉 http://$(APP_NAME).$(LOCATION).azurecontainer.io:8080"
+                echo "====================================="
