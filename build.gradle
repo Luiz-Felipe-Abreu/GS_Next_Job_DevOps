@@ -44,6 +44,7 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	// Usando PostgreSQL para todos os ambientes, incluindo testes
 	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
 }
  
 tasks.named('test') {
