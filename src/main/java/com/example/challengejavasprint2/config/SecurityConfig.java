@@ -16,7 +16,13 @@ public class SecurityConfig {
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/login", "/error", "/webjars/**", "/css/**", "/js/**").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                .anyRequest().permitAll() // Permite acesso sem autenticação
+                .anyRequest().authenticated()
+            )
+            // OAuth2 Login (GitHub)
+            .oauth2Login(oauth2 -> oauth2
+                .loginPage("/login")
+                .defaultSuccessUrl("/", true)
+                .failureUrl("/login?error=true")
             )
             .logout(logout -> logout
                 .logoutUrl("/logout")
