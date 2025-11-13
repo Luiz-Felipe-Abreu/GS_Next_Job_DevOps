@@ -2,18 +2,19 @@ trigger:
   - main
 
 variables:
+  - group: nextjob-secrets  # Importa variáveis secretas do Variable Group
   # Variáveis globais
-  AZURE_SUBSCRIPTION: 'Azurelifeshift'
-  RESOURCE_GROUP: 'rg-lifeshift'
+  AZURE_SUBSCRIPTION: 'AzureNextJob'
+  RESOURCE_GROUP: 'rg-nextjob-rm555197'
   LOCATION: 'eastus'
-  ACR_NAME: 'acrlifeshift'
-  ACR_LOGIN_SERVER: 'acrlifeshift.azurecr.io'
-  IMAGE_NAME: 'applifeshift'
+  ACR_NAME: 'acrnextjobrm555197'
+  ACR_LOGIN_SERVER: 'acrnextjobrm555197.azurecr.io'
+  IMAGE_NAME: 'appnextjob'
   IMAGE_TAG: 'latest'
-  APP_NAME: 'aci-app-lifeshift-rm556859'
-  DB_USER: 'lifeshift'
-  DB_NAME: 'lifeshift'
-  RM: '556859'
+  APP_NAME: 'aci-app-nextjob-rm555197'
+  DB_USER: 'nextjob'
+  DB_NAME: 'nextjob'
+  RM: '555197'
 
 stages:
 # ===============================================================
@@ -50,11 +51,11 @@ stages:
             displayName: "Copy Build Artifact"
             inputs:
               SourceFolder: '$(System.DefaultWorkingDirectory)'
-              Contents: '**/build/libs/*SNAPSHOT.jar'
+              Contents: '**/build/libs/*.jar'
               TargetFolder: '$(Build.ArtifactStagingDirectory)'
 
           - publish: '$(Build.ArtifactStagingDirectory)'
-            artifact: 'lifeshiftApp'
+            artifact: 'nextjobApp'
 
 # ===============================================================
 # 2️⃣ - BUILD DOCKER IMAGE (Publicação no ACR)
@@ -74,7 +75,7 @@ stages:
             displayName: "Login to ACR"
             inputs:
               command: login
-              containerRegistry: 'lifeshiftservice556859'
+              containerRegistry: 'nextjobservice'
 
           - task: Docker@2
             displayName: "Build and Push Image"
@@ -84,7 +85,7 @@ stages:
               tags: |
                 $(IMAGE_TAG)
                 $(Build.BuildId)
-              dockerfile: 'dockerfiles/Dockerfile'
+              dockerfile: '**/Dockerfile'
 
 # ===============================================================
 # 3️⃣ - DEPLOY (CD AUTOMÁTICO)
@@ -124,19 +125,13 @@ stages:
                   --image $APP_IMAGE \
                   --cpu 1 --memory 1 \
                   --registry-login-server $(ACR_LOGIN_SERVER) \
-                  --registry-username $(ACR_NAME) \
+                  --registry-username $(ACR_USERNAME) \
                   --registry-password $(ACR_PASSWORD) \
                   --environment-variables \
                     SPRING_DATASOURCE_URL="$(SPRING_DATASOURCE_URL)" \
                     SPRING_DATASOURCE_USERNAME="$(DB_USER)" \
                     SPRING_DATASOURCE_PASSWORD="$(DB_PASSWORD)" \
                     SPRING_JPA_HIBERNATE_DDL_AUTO=update \
-                    SPRING_FLYWAY_URL="$(SPRING_DATASOURCE_URL)" \
-                    SPRING_FLYWAY_USER="$(DB_USER)" \
-                    SPRING_FLYWAY_PASSWORD="$(DB_PASSWORD)" \
-                    GOOGLE_CLIENT_ID="$(GOOGLE_CLIENT_ID)" \
-                    GOOGLE_CLIENT_SECRET="$(GOOGLE_CLIENT_SECRET)" \
-                    GROQ_API_KEY="$(GROQ_API_KEY)" \
                   --ports 8080 \
                   --os-type Linux \
                   --dns-name-label $APP_DNS_LABEL \
