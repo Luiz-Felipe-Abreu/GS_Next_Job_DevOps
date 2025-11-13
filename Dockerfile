@@ -52,9 +52,9 @@ EXPOSE 8080
 # Copiar JAR da etapa de build
 COPY --from=build --chown=nextjob:nextjob /app/build/libs/*.jar /app/app.jar
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+# Healthcheck (desabilitado para simplificar)
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=60s --retries=3 \
+#   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
 
 # Variáveis de ambiente (podem ser sobrescritas no ACI)
 ENV JAVA_OPTS="-Xmx512m -Xms256m"

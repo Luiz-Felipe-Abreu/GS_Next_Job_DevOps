@@ -15,6 +15,8 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/login", "/error", "/webjars/**", "/css/**", "/js/**").permitAll()
+                .requestMatchers("/api/**").permitAll()  // Liberar APIs REST para CRUD
+                .requestMatchers("/actuator/health").permitAll()  // Liberar healthcheck
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
