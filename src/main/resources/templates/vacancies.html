@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Vagas - NextJob</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>🚀 NextJob</h1>
+                <p class="tagline">Gerenciar Vagas</p>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/candidates">Candidatos</a></li>
+                <li><a href="/vacancies" class="active">Vagas</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container main-content">
+        <div class="page-header">
+            <h2>Gestão de Vagas</h2>
+            <button class="btn btn-primary" onclick="showAddVacancyForm()">
+                ➕ Nova Vaga
+            </button>
+        </div>
+
+        <!-- Formulário de Adicionar/Editar Vaga -->
+        <div id="vacancyFormContainer" class="form-container" style="display: none;">
+            <div class="form-card">
+                <h3 id="formTitle">Adicionar Nova Vaga</h3>
+                <form id="vacancyForm">
+                    <input type="hidden" id="vacancyId">
+                    
+                    <div class="form-group">
+                        <label for="title">Título da Vaga *</label>
+                        <input type="text" id="title" class="form-control" required 
+                               placeholder="Ex: Desenvolvedor Java Sênior" maxlength="150">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Descrição da Vaga *</label>
+                        <textarea id="description" class="form-control" rows="6" required
+                                  placeholder="Descreva as responsabilidades, benefícios e informações sobre a vaga..."
+                                  maxlength="2000"></textarea>
+                        <small class="form-hint"><span id="charCount">0</span>/2000 caracteres</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="requiredSkills">Habilidades Requeridas *</label>
+                        <div class="skills-input-container">
+                            <input type="text" id="skillInput" class="form-control" 
+                                   placeholder="Digite uma habilidade e pressione Enter">
+                            <button type="button" class="btn btn-secondary" onclick="addSkill()">
+                                Adicionar
+                            </button>
+                        </div>
+                        <div id="skillsList" class="skills-list"></div>
+                        <small class="form-hint">Ex: Java, Spring Boot, Microserviços, Docker, Kubernetes</small>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">Salvar Vaga</button>
+                        <button type="button" class="btn btn-secondary" onclick="cancelForm()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Vagas -->
+        <div class="table-container">
+            <div class="search-bar">
+                <input type="text" id="searchInput" class="form-control" 
+                       placeholder="🔍 Buscar vagas por título, descrição ou habilidades...">
+            </div>
+            
+            <div id="vacanciesLoading" class="loading">Carregando vagas...</div>
+            <div id="vacanciesError" class="error-message" style="display: none;"></div>
+            
+            <div id="vacanciesGrid" class="vacancies-grid" style="display: none;">
+                <!-- Cards serão inseridos via JavaScript -->
+            </div>
+            
+            <div id="noVacancies" class="empty-state" style="display: none;">
+                <p>💼 Nenhuma vaga cadastrada ainda.</p>
+                <button class="btn btn-primary" onclick="showAddVacancyForm()">
+                    Adicionar Primeira Vaga
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 NextJob - O Futuro do Trabalho</p>
+        </div>
+    </footer>
+
+    <script src="/js/app.js"></script>
+    <script>
+        let vacancies = [];
+        let currentSkills = [];
+        let editingId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadVacancies();
+            setupSearchFilter();
+            setupFormSubmit();
+            setupSkillInput();
+            setupCharCounter();
+        });
+
+        function loadVacancies() {
+            showLoading(true);
+            fetch('/api/vacancies')
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro ao carregar vagas');
+                    return response.json();
+                })
+                .then(data => {
+                    vacancies = data;
+                    displayVacancies(vacancies);
+                    showLoading(false);
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    showError('Erro ao carregar vagas. Verifique se o servidor está rodando.');
+                    showLoading(false);
+                });
+        }
+
+        function displayVacancies(vacanciesList) {
+            const grid = document.getElementById('vacanciesGrid');
+            const noData = document.getElementById('noVacancies');
+            
+            if (vacanciesList.length === 0) {
+                grid.style.display = 'none';
+                noData.style.display = 'block';
+                return;
+            }
+            
+            grid.style.display = 'grid';
+            noData.style.display = 'none';
+            grid.innerHTML = '';
+            
+            vacanciesList.forEach(vacancy => {
+                const card = document.createElement('div');
+                card.className = 'vacancy-card';
+                card.innerHTML = `
+                    <div class="vacancy-header">
+                        <h3>${escapeHtml(vacancy.title)}</h3>
+                        <div class="action-buttons">
+                            <button class="btn-icon btn-edit" onclick="editVacancy(${vacancy.id})" 
+                                    title="Editar">✏️</button>
+                            <button class="btn-icon btn-delete" onclick="deleteVacancy(${vacancy.id})" 
+                                    title="Excluir">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="vacancy-description">${escapeHtml(vacancy.description || 'Sem descrição')}</p>
+                    <div class="vacancy-skills">
+                        <strong>Habilidades Requeridas:</strong>
+                        <div class="skills-tags">
+                            ${vacancy.requiredSkills.map(skill => 
+                                `<span class="skill-tag">${escapeHtml(skill)}</span>`
+                            ).join('')}
+                        </div>
+                    </div>
+                    <div class="vacancy-footer">
+                        <span class="vacancy-id">ID: ${vacancy.id}</span>
+                        <span class="skill-count">${vacancy.requiredSkills.length} habilidades</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function showAddVacancyForm() {
+            editingId = null;
+            currentSkills = [];
+            document.getElementById('formTitle').textContent = 'Adicionar Nova Vaga';
+            document.getElementById('vacancyForm').reset();
+            document.getElementById('vacancyId').value = '';
+            document.getElementById('skillsList').innerHTML = '';
+            document.getElementById('charCount').textContent = '0';
+            document.getElementById('vacancyFormContainer').style.display = 'block';
+            document.getElementById('vacancyFormContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function editVacancy(id) {
+            const vacancy = vacancies.find(v => v.id === id);
+            if (!vacancy) return;
+            
+            editingId = id;
+            currentSkills = [...vacancy.requiredSkills];
+            
+            document.getElementById('formTitle').textContent = 'Editar Vaga';
+            document.getElementById('vacancyId').value = vacancy.id;
+            document.getElementById('title').value = vacancy.title;
+            document.getElementById('description').value = vacancy.description || '';
+            document.getElementById('charCount').textContent = (vacancy.description || '').length;
+            
+            renderSkills();
+            document.getElementById('vacancyFormContainer').style.display = 'block';
+            document.getElementById('vacancyFormContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function deleteVacancy(id) {
+            const vacancy = vacancies.find(v => v.id === id);
+            if (!vacancy) return;
+            
+            if (!confirm(`Deseja realmente excluir a vaga "${vacancy.title}"?`)) return;
+            
+            fetch(`/api/vacancies/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => {
+                if (response.ok || response.status === 204) {
+                    showSuccess('Vaga excluída com sucesso!');
+                    loadVacancies();
+                } else {
+                    throw new Error('Erro ao excluir vaga');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao excluir vaga.');
+            });
+        }
+
+        function setupFormSubmit() {
+            document.getElementById('vacancyForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (currentSkills.length === 0) {
+                    alert('Por favor, adicione pelo menos uma habilidade requerida.');
+                    return;
+                }
+                
+                const vacancyData = {
+                    title: document.getElementById('title').value.trim(),
+                    description: document.getElementById('description').value.trim(),
+                    requiredSkills: currentSkills
+                };
+                
+                const url = editingId ? `/api/vacancies/${editingId}` : '/api/vacancies';
+                const method = editingId ? 'PUT' : 'POST';
+                
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(vacancyData)
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Erro ao salvar vaga');
+                    return response.json();
+                })
+                .then(data => {
+                    showSuccess(editingId ? 'Vaga atualizada com sucesso!' : 'Vaga cadastrada com sucesso!');
+                    cancelForm();
+                    loadVacancies();
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert(error.message);
+                });
+            });
+        }
+
+        function setupSkillInput() {
+            const input = document.getElementById('skillInput');
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSkill();
+                }
+            });
+        }
+
+        function setupCharCounter() {
+            document.getElementById('description').addEventListener('input', function(e) {
+                document.getElementById('charCount').textContent = e.target.value.length;
+            });
+        }
+
+        function addSkill() {
+            const input = document.getElementById('skillInput');
+            const skill = input.value.trim();
+            
+            if (!skill) return;
+            
+            if (currentSkills.includes(skill)) {
+                alert('Esta habilidade já foi adicionada.');
+                return;
+            }
+            
+            currentSkills.push(skill);
+            input.value = '';
+            renderSkills();
+        }
+
+        function removeSkill(index) {
+            currentSkills.splice(index, 1);
+            renderSkills();
+        }
+
+        function renderSkills() {
+            const container = document.getElementById('skillsList');
+            container.innerHTML = currentSkills.map((skill, index) => `
+                <span class="skill-tag">
+                    ${escapeHtml(skill)}
+                    <button type="button" class="skill-remove" onclick="removeSkill(${index})">×</button>
+                </span>
+            `).join('');
+        }
+
+        function cancelForm() {
+            document.getElementById('vacancyFormContainer').style.display = 'none';
+            document.getElementById('vacancyForm').reset();
+            editingId = null;
+            currentSkills = [];
+        }
+
+        function setupSearchFilter() {
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filtered = vacancies.filter(vacancy => 
+                    vacancy.title.toLowerCase().includes(searchTerm) ||
+                    (vacancy.description && vacancy.description.toLowerCase().includes(searchTerm)) ||
+                    vacancy.requiredSkills.some(skill => skill.toLowerCase().includes(searchTerm))
+                );
+                displayVacancies(filtered);
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('vacanciesLoading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('vacanciesError');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const notification = document.createElement('div');
+            notification.className = 'success-notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

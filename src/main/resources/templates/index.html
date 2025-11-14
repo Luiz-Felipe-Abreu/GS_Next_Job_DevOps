@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NextJob - Plataforma Inteligente de Carreira</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <h1>🚀 NextJob</h1>
+                <p class="tagline">O Futuro do Trabalho</p>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/candidates">Candidatos</a></li>
+                <li><a href="/vacancies">Vagas</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h2>Preparando Profissionais para o Futuro</h2>
+                <p class="hero-description">
+                    Utilizamos Inteligência Artificial para conectar candidatos às melhores oportunidades, 
+                    analisando habilidades, experiências e oferecendo recomendações personalizadas de carreira.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalCandidates">0</span>
+                        <span class="stat-label">Candidatos</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalVacancies">0</span>
+                        <span class="stat-label">Vagas Ativas</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalMatches">0</span>
+                        <span class="stat-label">Matches Realizados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Como Funciona o NextJob</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📄</div>
+                    <h3>Análise Automática</h3>
+                    <p>Extraímos automaticamente habilidades técnicas, experiências, soft skills e certificações do currículo.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Match Inteligente</h3>
+                    <p>Calculamos compatibilidade entre perfil e vaga com base em critérios ponderados e IA.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💡</div>
+                    <h3>Recomendações</h3>
+                    <p>Geramos sugestões personalizadas para aprimorar seu currículo e aumentar suas chances.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <h3>Trilhas de Aprendizado</h3>
+                    <p>Sugerimos cursos e competências necessárias para vagas que você deseja alcançar.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Plano de Carreira</h3>
+                    <p>Criamos planos personalizados orientando sobre profissões emergentes até 2030.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🤖</div>
+                    <h3>IA como Parceira</h3>
+                    <p>Tecnologia trabalhando junto com humanos para requalificação e inclusão produtiva.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="match-section">
+        <div class="container">
+            <h2 class="section-title">Calcular Compatibilidade</h2>
+            <p class="section-description">Descubra o percentual de match entre um candidato e uma vaga</p>
+            
+            <div class="match-form-container">
+                <form id="matchForm" class="match-form">
+                    <div class="form-group">
+                        <label for="candidateSelect">Selecione o Candidato</label>
+                        <select id="candidateSelect" class="form-control" required>
+                            <option value="">Carregando candidatos...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vacancySelect">Selecione a Vaga</label>
+                        <select id="vacancySelect" class="form-control" required>
+                            <option value="">Carregando vagas...</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Calcular Compatibilidade</button>
+                </form>
+                
+                <div id="matchResult" class="match-result" style="display: none;">
+                    <h3>Resultado do Match</h3>
+                    <div class="compatibility-score">
+                        <div class="score-circle">
+                            <span id="compatibilityScore">0</span>%
+                        </div>
+                    </div>
+                    <p class="match-message" id="matchMessage"></p>
+                    <div class="match-details">
+                        <div class="detail-item">
+                            <strong>Candidato:</strong>
+                            <span id="matchCandidateName">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Vaga:</strong>
+                            <span id="matchVacancyTitle">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <h2>Pronto para Transformar sua Carreira?</h2>
+            <p>Cadastre-se como candidato ou publique vagas para começar a usar o NextJob hoje mesmo.</p>
+            <div class="cta-buttons">
+                <a href="/candidates" class="btn btn-light">Gerenciar Candidatos</a>
+                <a href="/vacancies" class="btn btn-outline">Gerenciar Vagas</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 NextJob - O Futuro do Trabalho | Requalificação Profissional com IA</p>
+            <p class="footer-tech">Spring Boot + PostgreSQL + Azure DevOps</p>
+        </div>
+    </footer>
+
+    <script src="/js/app.js"></script>
+    <script>
+        // Inicializar dados na página principal
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardStats();
+            loadCandidatesForSelect();
+            loadVacanciesForSelect();
+            setupMatchForm();
+        });
+
+        function loadDashboardStats() {
+            // Carregar total de candidatos
+            fetch('/api/candidates')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalCandidates').textContent = data.length;
+                })
+                .catch(error => console.error('Erro ao carregar candidatos:', error));
+
+            // Carregar total de vagas
+            fetch('/api/vacancies')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('totalVacancies').textContent = data.length;
+                    // Simular matches (em produção seria um endpoint real)
+                    document.getElementById('totalMatches').textContent = Math.floor(Math.random() * 100);
+                })
+                .catch(error => console.error('Erro ao carregar vagas:', error));
+        }
+
+        function loadCandidatesForSelect() {
+            fetch('/api/candidates')
+                .then(response => response.json())
+                .then(candidates => {
+                    const select = document.getElementById('candidateSelect');
+                    select.innerHTML = '<option value="">Selecione um candidato</option>';
+                    candidates.forEach(candidate => {
+                        const option = document.createElement('option');
+                        option.value = candidate.id;
+                        option.textContent = `${candidate.fullName} - ${candidate.skills.slice(0, 3).join(', ')}`;
+                        option.dataset.name = candidate.fullName;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar candidatos:', error));
+        }
+
+        function loadVacanciesForSelect() {
+            fetch('/api/vacancies')
+                .then(response => response.json())
+                .then(vacancies => {
+                    const select = document.getElementById('vacancySelect');
+                    select.innerHTML = '<option value="">Selecione uma vaga</option>';
+                    vacancies.forEach(vacancy => {
+                        const option = document.createElement('option');
+                        option.value = vacancy.id;
+                        option.textContent = vacancy.title;
+                        option.dataset.title = vacancy.title;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar vagas:', error));
+        }
+
+        function setupMatchForm() {
+            const form = document.getElementById('matchForm');
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const candidateId = document.getElementById('candidateSelect').value;
+                const vacancyId = document.getElementById('vacancySelect').value;
+                
+                if (!candidateId || !vacancyId) {
+                    alert('Por favor, selecione um candidato e uma vaga.');
+                    return;
+                }
+                
+                // Buscar nome do candidato e título da vaga
+                const candidateName = document.querySelector(`#candidateSelect option[value="${candidateId}"]`).dataset.name;
+                const vacancyTitle = document.querySelector(`#vacancySelect option[value="${vacancyId}"]`).dataset.title;
+                
+                fetch('/api/match/compatibility', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        candidateId: parseInt(candidateId),
+                        vacancyId: parseInt(vacancyId)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const score = data.compatibility;
+                    document.getElementById('compatibilityScore').textContent = score;
+                    document.getElementById('matchCandidateName').textContent = candidateName;
+                    document.getElementById('matchVacancyTitle').textContent = vacancyTitle;
+                    
+                    let message = '';
+                    if (score >= 80) {
+                        message = '🎉 Excelente match! Este candidato possui alta compatibilidade com a vaga.';
+                    } else if (score >= 60) {
+                        message = '👍 Bom match! O candidato atende a maioria dos requisitos da vaga.';
+                    } else if (score >= 40) {
+                        message = '⚠️ Match moderado. O candidato pode precisar de capacitação adicional.';
+                    } else {
+                        message = '❌ Match baixo. Recomendamos investir em cursos de requalificação.';
+                    }
+                    
+                    document.getElementById('matchMessage').textContent = message;
+                    document.getElementById('matchResult').style.display = 'block';
+                    document.getElementById('matchResult').scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Erro ao calcular compatibilidade:', error);
+                    alert('Erro ao calcular compatibilidade. Tente novamente.');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "fullName": "João Silva Atualizado",
+  "email": "joao.silva@email.com",
+  "skills": [
+    "Java",
+    "Spring Boot",
+    "PostgreSQL",
+    "Docker",
+    "Kubernetes",
+    "JavaScript",
+    "React",
+    "Azure"
+  ]
+}

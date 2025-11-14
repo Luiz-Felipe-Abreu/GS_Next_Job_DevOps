@@ -1,0 +1,13 @@
+{
+  "title": "Desenvolvedor Java Sênior",
+  "description": "Buscamos desenvolvedor Java com experiência em Spring Boot e microsserviços para atuar em projetos de transformação digital. Requisitos: 5+ anos de experiência, conhecimento em Cloud (Azure/AWS), práticas de DevOps e metodologias ágeis.",
+  "requiredSkills": [
+    "Java",
+    "Spring Boot",
+    "Microservices",
+    "PostgreSQL",
+    "Docker",
+    "Kubernetes",
+    "Azure"
+  ]
+}
