@@ -1,9 +1,0 @@
-services:
-  postgres:
-    image: 'postgres:latest'
-    environment:
-      - 'POSTGRES_DB=nextjob'
-      - 'POSTGRES_PASSWORD=nextjob'
-      - 'POSTGRES_USER=nextjob'
-    ports:
-      - '5432:5432'

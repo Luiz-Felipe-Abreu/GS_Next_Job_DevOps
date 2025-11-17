@@ -1,274 +1,534 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NextJob - Plataforma Inteligente de Carreira</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>NextJob - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f7fafc;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 20px;
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: #4a5568;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: #FF6B35;
+        }
+
+        .login-btn {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 107, 53, 0.3);
+        }
+
+        /* User Profile */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+            object-fit: cover;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .user-avatar:hover {
+            border-color: #FF6B35;
+            box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+            padding: 14px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: white;
+        }
+
+        /* Cards Section */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 4rem 2rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .section-subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 1.125rem;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            transition: all 0.3s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon-orange {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
+        }
+
+        .card-icon-purple {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .card-icon-green {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+
+        .card-icon-blue {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 0.75rem;
+        }
+
+        .card p {
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-link {
+            color: #FF6B35;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: gap 0.3s;
+        }
+
+        .card-link:hover {
+            gap: 0.75rem;
+        }
+
+        /* Features */
+        .features {
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .feature-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: #f7fafc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .feature-content h4 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-content p {
+            color: #718096;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <h1>🚀 NextJob</h1>
-                <p class="tagline">O Futuro do Trabalho</p>
+<body>    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">N</div>
+                <span class="brand">NextJob</span>
             </div>
-            <ul class="nav-menu">
-                <li><a href="/" class="active">Home</a></li>
-                <li><a href="/candidates">Candidatos</a></li>
-                <li><a href="/vacancies">Vagas</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <header class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <h2>Preparando Profissionais para o Futuro</h2>
-                <p class="hero-description">
-                    Utilizamos Inteligência Artificial para conectar candidatos às melhores oportunidades, 
-                    analisando habilidades, experiências e oferecendo recomendações personalizadas de carreira.
-                </p>
-                <div class="hero-stats">
-                    <div class="stat-card">
-                        <span class="stat-number" id="totalCandidates">0</span>
-                        <span class="stat-label">Candidatos</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-number" id="totalVacancies">0</span>
-                        <span class="stat-label">Vagas Ativas</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-number" id="totalMatches">0</span>
-                        <span class="stat-label">Matches Realizados</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <section class="features">
-        <div class="container">
-            <h2 class="section-title">Como Funciona o NextJob</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">📄</div>
-                    <h3>Análise Automática</h3>
-                    <p>Extraímos automaticamente habilidades técnicas, experiências, soft skills e certificações do currículo.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Match Inteligente</h3>
-                    <p>Calculamos compatibilidade entre perfil e vaga com base em critérios ponderados e IA.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">💡</div>
-                    <h3>Recomendações</h3>
-                    <p>Geramos sugestões personalizadas para aprimorar seu currículo e aumentar suas chances.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🎓</div>
-                    <h3>Trilhas de Aprendizado</h3>
-                    <p>Sugerimos cursos e competências necessárias para vagas que você deseja alcançar.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Plano de Carreira</h3>
-                    <p>Criamos planos personalizados orientando sobre profissões emergentes até 2030.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3>IA como Parceira</h3>
-                    <p>Tecnologia trabalhando junto com humanos para requalificação e inclusão produtiva.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="match-section">
-        <div class="container">
-            <h2 class="section-title">Calcular Compatibilidade</h2>
-            <p class="section-description">Descubra o percentual de match entre um candidato e uma vaga</p>
-            
-            <div class="match-form-container">
-                <form id="matchForm" class="match-form">
-                    <div class="form-group">
-                        <label for="candidateSelect">Selecione o Candidato</label>
-                        <select id="candidateSelect" class="form-control" required>
-                            <option value="">Carregando candidatos...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="vacancySelect">Selecione a Vaga</label>
-                        <select id="vacancySelect" class="form-control" required>
-                            <option value="">Carregando vagas...</option>
-                        </select>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Calcular Compatibilidade</button>
-                </form>
+            <nav class="nav-links">
+                <a href="/" class="nav-link">Início</a>
+                <a href="/plano" class="nav-link">Gerar Plano</a>
+                <a href="/planos" class="nav-link">Meus Planos</a>
                 
-                <div id="matchResult" class="match-result" style="display: none;">
-                    <h3>Resultado do Match</h3>
-                    <div class="compatibility-score">
-                        <div class="score-circle">
-                            <span id="compatibilityScore">0</span>%
-                        </div>
+                <!-- User Profile -->
+                <div class="user-profile" th:if="${userPicture != null}">
+                    <div class="user-info">
+                        <span class="user-name" th:text="${userName}">Usuário</span>
+                        <span class="user-email" th:text="${userEmail}">email@exemplo.com</span>
                     </div>
-                    <p class="match-message" id="matchMessage"></p>
-                    <div class="match-details">
-                        <div class="detail-item">
-                            <strong>Candidato:</strong>
-                            <span id="matchCandidateName">-</span>
-                        </div>
-                        <div class="detail-item">
-                            <strong>Vaga:</strong>
-                            <span id="matchVacancyTitle">-</span>
-                        </div>
+                    <img th:src="${userPicture}" alt="Foto de perfil" class="user-avatar" th:title="${userName}">
+                </div>
+                
+                <!-- Login Button (se não estiver autenticado) -->
+                <a href="/login" class="login-btn" th:if="${userPicture == null}">Entrar</a>
+            </nav>
+        </div>
+    </header>    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Bem-vindo ao NextJob!</h1>
+            <p>Impulsione sua carreira com Inteligência Artificial. Gere planos de carreira personalizados analisando seu currículo com nossa IA Groq LLaMA 3.3 70B.</p>
+            <div class="cta-buttons">
+                <a href="/plano" class="btn-primary">✨ Gerar Plano com IA</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Cards -->
+    <div class="container">        <h2 class="section-title">Principais Funcionalidades</h2>
+        <p class="section-subtitle">Tudo que você precisa para impulsionar sua carreira</p>
+
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-icon card-icon-purple">
+                    🤖
+                </div>
+                <h3>Planos com IA</h3>
+                <p>Gere planos de carreira personalizados digitando seu currículo e usando Inteligência Artificial Groq LLaMA 3.3 70B.</p>
+                <a href="/plano" class="card-link">
+                    Gerar plano
+                    <span>→</span>
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-icon card-icon-green">
+                    📊
+                </div>
+                <h3>Meus Planos</h3>
+                <p>Visualize todos os seus planos de carreira gerados, acompanhe o progresso e veja recomendações.</p>
+                <a href="/planos" class="card-link">
+                    Ver planos
+                    <span>→</span>
+                </a>
+            </div>
+
+            <div class="card">
+                <div class="card-icon card-icon-blue">
+                    ⚡
+                </div>
+                <h3>Processamento Rápido</h3>
+                <p>Processamento assíncrono com RabbitMQ garante respostas rápidas e eficientes.</p>
+                <a href="/actuator/health" class="card-link">
+                    Ver status
+                    <span>→</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features">
+            <h2 class="section-title">Por que usar o NextJob?</h2>
+            <p class="section-subtitle">Tecnologia de ponta para sua carreira</p>
+            
+            <div class="features-grid">
+                <div class="feature">
+                    <div class="feature-icon">🎯</div>
+                    <div class="feature-content">
+                        <h4>Planos Personalizados</h4>
+                        <p>IA cria planos únicos baseados no seu perfil e objetivos</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🚀</div>
+                    <div class="feature-content">
+                        <h4>Processamento Assíncrono</h4>
+                        <p>RabbitMQ para análises rápidas sem travamentos</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">💾</div>
+                    <div class="feature-content">
+                        <h4>Cache Inteligente</h4>
+                        <p>Dados frequentes em cache para máxima performance</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <div class="feature-content">
+                        <h4>Seguro e Confiável</h4>
+                        <p>OAuth2 com Google para autenticação segura</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-content">
+                        <h4>Métricas em Tempo Real</h4>
+                        <p>Acompanhe o status com Actuator e Prometheus</p>
+                    </div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-content">
+                        <h4>Interface Moderna</h4>
+                        <p>Design clean e responsivo para melhor experiência</p>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 
-    <section class="cta-section">
-        <div class="container">
-            <h2>Pronto para Transformar sua Carreira?</h2>
-            <p>Cadastre-se como candidato ou publique vagas para começar a usar o NextJob hoje mesmo.</p>
-            <div class="cta-buttons">
-                <a href="/candidates" class="btn btn-light">Gerenciar Candidatos</a>
-                <a href="/vacancies" class="btn btn-outline">Gerenciar Vagas</a>
-            </div>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2025 NextJob - O Futuro do Trabalho | Requalificação Profissional com IA</p>
-            <p class="footer-tech">Spring Boot + PostgreSQL + Azure DevOps</p>
-        </div>
-    </footer>
-
-    <script src="/js/app.js"></script>
     <script>
-        // Inicializar dados na página principal
-        document.addEventListener('DOMContentLoaded', function() {
-            loadDashboardStats();
-            loadCandidatesForSelect();
-            loadVacanciesForSelect();
-            setupMatchForm();
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
         });
 
-        function loadDashboardStats() {
-            // Carregar total de candidatos
-            fetch('/api/candidates')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('totalCandidates').textContent = data.length;
-                })
-                .catch(error => console.error('Erro ao carregar candidatos:', error));
+        // Fade in animation on scroll
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
 
-            // Carregar total de vagas
-            fetch('/api/vacancies')
-                .then(response => response.json())
-                .then(data => {
-                    document.getElementById('totalVacancies').textContent = data.length;
-                    // Simular matches (em produção seria um endpoint real)
-                    document.getElementById('totalMatches').textContent = Math.floor(Math.random() * 100);
-                })
-                .catch(error => console.error('Erro ao carregar vagas:', error));
-        }
-
-        function loadCandidatesForSelect() {
-            fetch('/api/candidates')
-                .then(response => response.json())
-                .then(candidates => {
-                    const select = document.getElementById('candidateSelect');
-                    select.innerHTML = '<option value="">Selecione um candidato</option>';
-                    candidates.forEach(candidate => {
-                        const option = document.createElement('option');
-                        option.value = candidate.id;
-                        option.textContent = `${candidate.fullName} - ${candidate.skills.slice(0, 3).join(', ')}`;
-                        option.dataset.name = candidate.fullName;
-                        select.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Erro ao carregar candidatos:', error));
-        }
-
-        function loadVacanciesForSelect() {
-            fetch('/api/vacancies')
-                .then(response => response.json())
-                .then(vacancies => {
-                    const select = document.getElementById('vacancySelect');
-                    select.innerHTML = '<option value="">Selecione uma vaga</option>';
-                    vacancies.forEach(vacancy => {
-                        const option = document.createElement('option');
-                        option.value = vacancy.id;
-                        option.textContent = vacancy.title;
-                        option.dataset.title = vacancy.title;
-                        select.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Erro ao carregar vagas:', error));
-        }
-
-        function setupMatchForm() {
-            const form = document.getElementById('matchForm');
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const candidateId = document.getElementById('candidateSelect').value;
-                const vacancyId = document.getElementById('vacancySelect').value;
-                
-                if (!candidateId || !vacancyId) {
-                    alert('Por favor, selecione um candidato e uma vaga.');
-                    return;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '0';
+                    entry.target.style.transform = 'translateY(20px)';
+                    entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                    
+                    setTimeout(() => {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }, 100);
+                    
+                    observer.unobserve(entry.target);
                 }
-                
-                // Buscar nome do candidato e título da vaga
-                const candidateName = document.querySelector(`#candidateSelect option[value="${candidateId}"]`).dataset.name;
-                const vacancyTitle = document.querySelector(`#vacancySelect option[value="${vacancyId}"]`).dataset.title;
-                
-                fetch('/api/match/compatibility', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        candidateId: parseInt(candidateId),
-                        vacancyId: parseInt(vacancyId)
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const score = data.compatibility;
-                    document.getElementById('compatibilityScore').textContent = score;
-                    document.getElementById('matchCandidateName').textContent = candidateName;
-                    document.getElementById('matchVacancyTitle').textContent = vacancyTitle;
-                    
-                    let message = '';
-                    if (score >= 80) {
-                        message = '🎉 Excelente match! Este candidato possui alta compatibilidade com a vaga.';
-                    } else if (score >= 60) {
-                        message = '👍 Bom match! O candidato atende a maioria dos requisitos da vaga.';
-                    } else if (score >= 40) {
-                        message = '⚠️ Match moderado. O candidato pode precisar de capacitação adicional.';
-                    } else {
-                        message = '❌ Match baixo. Recomendamos investir em cursos de requalificação.';
-                    }
-                    
-                    document.getElementById('matchMessage').textContent = message;
-                    document.getElementById('matchResult').style.display = 'block';
-                    document.getElementById('matchResult').scrollIntoView({ behavior: 'smooth' });
-                })
-                .catch(error => {
-                    console.error('Erro ao calcular compatibilidade:', error);
-                    alert('Erro ao calcular compatibilidade. Tente novamente.');
-                });
             });
-        }
+        }, observerOptions);
+
+        document.querySelectorAll('.card, .feature').forEach(el => {
+            observer.observe(el);
+        });
     </script>
 </body>
 </html>
