@@ -4,6 +4,7 @@ trigger:
 variables:
   GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
   AZURE_LOCATION: eastus
+  AZURE_SUBSCRIPTION_ID: 0d4c88e7-0651-4c08-98ee-91f417a4f71c
   RESOURCE_GROUP: rg-nextjob
   ACR_NAME: acrnextjob
   ACR_LOGIN_SERVER: acrnextjob.azurecr.io
@@ -92,14 +93,28 @@ stages:
               azureSubscription: '$(azureSubscription)'
               scriptType: bash
               scriptLocation: inlineScript
+              addSpnToEnvironment: true
               inlineScript: |
                 set -euo pipefail
 
+                # Configurar subscription
+                echo "Setting Azure subscription..."
+                az account set --subscription "$(AZURE_SUBSCRIPTION_ID)"
+                az account show
+
                 echo "Using resource group: $(RESOURCE_GROUP) in $(AZURE_LOCATION)"
 
-                # Obter credenciais do ACR existente
-                ACR_USERNAME="$(ACR_USERNAME)"
-                ACR_PASSWORD="$(ACR_PASSWORD)"
+                # Obter credenciais do ACR
+                echo "Getting ACR credentials..."
+                ACR_USERNAME=$(az acr credential show --name "$(ACR_NAME)" --query username -o tsv)
+                ACR_PASSWORD=$(az acr credential show --name "$(ACR_NAME)" --query "passwords[0].value" -o tsv)
+                
+                if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
+                  echo "ERROR: Failed to get ACR credentials"
+                  exit 1
+                fi
+                
+                echo "ACR Username: $ACR_USERNAME"
 
                 # Nome do container e DNS
                 APP_CONTAINER_NAME="aci-app-nextjob-rm$(RM)"
@@ -107,12 +122,13 @@ stages:
 
                 # Excluir container anterior (para liberar DNS)
                 echo "Cleaning up previous container if it exists..."
-                az container delete --resource-group "$(RESOURCE_GROUP)" --name "$APP_CONTAINER_NAME" --yes || true
-                sleep 10
+                az container delete --resource-group "$(RESOURCE_GROUP)" --name "$APP_CONTAINER_NAME" --yes 2>/dev/null || true
+                sleep 15
 
                 # Criar container da aplicação
                 APP_IMAGE="$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)"
                 echo "Deploying application container: $APP_CONTAINER_NAME"
+                echo "Using image: $APP_IMAGE"
 
                 az container create \
                   --resource-group "$(RESOURCE_GROUP)" \
@@ -129,17 +145,47 @@ stages:
                     SPRING_FLYWAY_ENABLED=true \
                     SPRING_FLYWAY_BASELINE_ON_MIGRATE=true \
                     GROQ_API_KEY="$(GROQ_API_KEY)" \
-                    GROQ_API_URL="$(GROQ_API_URL)" \
-                    GROQ_MODEL="$(GROQ_MODEL)" \
+                    GROQ_API_URL="https://api.groq.com/openai/v1/chat/completions" \
+                    GROQ_MODEL="llama-3.3-70b-versatile" \
                     GITHUB_CLIENT_ID="$(GITHUB_CLIENT_ID)" \
                     GITHUB_CLIENT_SECRET="$(GITHUB_CLIENT_SECRET)" \
                   --secure-environment-variables \
                     SPRING_DATASOURCE_PASSWORD="$(SPRING_DATASOURCE_PASSWORD)" \
                   --ports 8080 \
+                  --ip-address Public \
                   --os-type Linux \
                   --dns-name-label "$APP_DNS_LABEL" \
                   --location "$(AZURE_LOCATION)" \
                   --restart-policy Always
 
-                APP_URL="http://$APP_DNS_LABEL.$(AZURE_LOCATION).azurecontainer.io:8080"
-                echo "✅ Application deployed at: $APP_URL"
+                if [ $? -eq 0 ]; then
+                  echo "Waiting for container to start..."
+                  sleep 20
+                  
+                  # Verificar status
+                  CONTAINER_STATE=$(az container show \
+                    --resource-group "$(RESOURCE_GROUP)" \
+                    --name "$APP_CONTAINER_NAME" \
+                    --query "containers[0].instanceView.currentState.state" \
+                    -o tsv)
+                  
+                  echo "Container state: $CONTAINER_STATE"
+                  
+                  APP_FQDN=$(az container show \
+                    --resource-group "$(RESOURCE_GROUP)" \
+                    --name "$APP_CONTAINER_NAME" \
+                    --query ipAddress.fqdn \
+                    -o tsv)
+                  
+                  APP_URL="http://${APP_FQDN}:8080"
+                  echo ""
+                  echo "✅ ============================================"
+                  echo "✅ Application deployed successfully!"
+                  echo "=============================================="
+                  echo "🌐 Application URL: $APP_URL"
+                  echo "🔍 Health Check: $APP_URL/actuator/health"
+                  echo ""
+                else
+                  echo "❌ Failed to deploy container"
+                  exit 1
+                fi
