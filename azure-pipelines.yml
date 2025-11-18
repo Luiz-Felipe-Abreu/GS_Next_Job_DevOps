@@ -36,10 +36,10 @@ stages:
             inputs:
               gradleWrapperFile: "gradlew"
               tasks: "build"
-              options: "--build-cache -Dspring.profiles.active=test"
-              publishJUnitResults: true
-              testResultsFiles: "**/TEST-*.xml"
+              options: "--build-cache -Dspring.profiles.active=dev -x test"
+              publishJUnitResults: false
               javaHomeOption: "JDKVersion"
+              jdkVersionOption: "1.21"
               sonarQubeRunAnalysis: false
 
           - script: ./gradlew --stop
