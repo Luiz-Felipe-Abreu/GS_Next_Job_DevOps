@@ -97,9 +97,20 @@ stages:
               inlineScript: |
                 set -euo pipefail
 
+                # Listar subscriptions disponíveis
+                echo "Available subscriptions:"
+                az account list --output table
+                
                 # Configurar subscription
                 echo "Setting Azure subscription..."
-                az account set --subscription "$(AZURE_SUBSCRIPTION_ID)"
+                az account set --subscription "$(AZURE_SUBSCRIPTION_ID)" || {
+                  echo "ERROR: Cannot set subscription $(AZURE_SUBSCRIPTION_ID)"
+                  echo "The service connection may not have access to this subscription."
+                  echo "Please verify the service connection configuration."
+                  exit 1
+                }
+                
+                echo "Active subscription:"
                 az account show
 
                 echo "Using resource group: $(RESOURCE_GROUP) in $(AZURE_LOCATION)"
