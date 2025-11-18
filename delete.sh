@@ -6,4 +6,5 @@ echo "=== Deletando Resource Group: $RG_NAME ==="
 az group delete --name $RG_NAME --yes
 
 echo ""
-echo "✅ Resource Group excluído com sucesso!"
+echo "Resource Group excluído com sucesso!"
+
