@@ -27,12 +27,13 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Criar usuário não-root para segurança
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
 # Copiar JAR do stage anterior
 COPY --from=builder /app/build/libs/*.jar app.jar
+
+# Criar usuário não-root para segurança
+RUN addgroup -S spring && adduser -S spring -G spring && \
+    chown -R spring:spring /app
+USER spring:spring
 
 # Expor porta da aplicação
 EXPOSE 8080
