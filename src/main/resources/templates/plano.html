@@ -302,7 +302,8 @@
                 <div class="result-content" id="resultContent"></div>
             </div>
         </div>
-    </div>    <script>
+    </div>    <script th:inline="javascript">
+        /*<![CDATA[*/
         const form = document.getElementById('planoForm');
         const submitBtn = document.getElementById('submitBtn');
         const loading = document.getElementById('loading');
@@ -397,6 +398,7 @@
                 submitBtn.textContent = '✨ Gerar Plano com IA';
             }
         });
+        /*]]>*/
     </script>
 </body>
 </html>

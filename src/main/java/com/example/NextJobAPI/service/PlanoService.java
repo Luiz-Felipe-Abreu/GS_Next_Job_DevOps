@@ -8,7 +8,6 @@ import com.example.NextJobAPI.model.Usuario;
 import com.example.NextJobAPI.repository.PlanoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -24,10 +23,7 @@ public class PlanoService {
     
     private final PlanoRepository planoRepository;
     private final UsuarioService usuarioService;
-    private final RabbitTemplate rabbitTemplate;
     private final GroqAIService groqAIService;
-    
-    private static final String PLANO_QUEUE = "plano.processamento";
       @Transactional
     @CacheEvict(value = "planos", allEntries = true)
     public PlanoResponseDTO criarPlano(PlanoRequestDTO request, String email) {
@@ -156,16 +152,6 @@ public class PlanoService {
         
         planoRepository.save(plano);
         log.info("Conteúdo do plano {} atualizado com sucesso", id);
-    }
-    
-    private void enviarParaProcessamento(Long planoId) {
-        try {
-            log.info("Enviando plano {} para processamento assíncrono", planoId);
-            rabbitTemplate.convertAndSend(PLANO_QUEUE, planoId);
-            log.info("Plano {} enviado para fila com sucesso", planoId);
-        } catch (Exception e) {
-            log.error("Erro ao enviar plano para fila: {}", e.getMessage());
-        }
     }
     
     private PlanoResponseDTO toResponseDTO(Plano plano) {

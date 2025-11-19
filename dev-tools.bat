@@ -6,7 +6,7 @@ echo =============================================
 echo    NextJob - Ferramentas de Desenvolvimento
 echo =============================================
 echo.
-echo 1. Iniciar Docker (Postgres + RabbitMQ)
+echo 1. Iniciar Docker (Postgres)
 echo 2. Parar Docker Compose
 echo 3. Ver containers NextJob (Docker)
 echo 4. Construir projeto (clean build)

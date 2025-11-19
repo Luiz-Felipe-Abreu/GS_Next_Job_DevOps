@@ -15,18 +15,6 @@ services:
     networks:
       - nextjob-network
 
-  rabbitmq:
-    image: 'rabbitmq:3-management-alpine'
-    container_name: nextjob-rabbitmq
-    environment:
-      - 'RABBITMQ_DEFAULT_USER=guest'
-      - 'RABBITMQ_DEFAULT_PASS=guest'
-    ports:
-      - '5672:5672'  # AMQP port
-      - '15672:15672'  # Management UI
-    networks:
-      - nextjob-network
-
 volumes:
   postgres_data:
 

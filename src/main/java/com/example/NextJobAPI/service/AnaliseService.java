@@ -1,6 +1,5 @@
 package com.example.NextJobAPI.service;
 
-import com.example.NextJobAPI.config.RabbitMQConfiguration;
 import com.example.NextJobAPI.dto.AnaliseResponseDTO;
 import com.example.NextJobAPI.exception.BusinessException;
 import com.example.NextJobAPI.exception.ResourceNotFoundException;
@@ -9,10 +8,10 @@ import com.example.NextJobAPI.model.Curriculo;
 import com.example.NextJobAPI.repository.AnaliseRepository;
 import com.example.NextJobAPI.repository.CurriculoRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,12 +25,12 @@ public class AnaliseService {
     
     private final AnaliseRepository analiseRepository;
     private final CurriculoRepository curriculoRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final GroqAIService groqAIService;
     private final ObjectMapper objectMapper;
     
     @Transactional
     public AnaliseResponseDTO criarAnaliseAssincrona(Long curriculoId, String userEmail) {
-        log.info("Criando análise assíncrona para currículo ID: {}", curriculoId);
+        log.info("Criando análise para currículo ID: {}", curriculoId);
         
         Curriculo curriculo = curriculoRepository.findById(curriculoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Currículo", "id", curriculoId));
@@ -44,16 +43,31 @@ public class AnaliseService {
         Analise analise = analiseRepository.findByCurriculoId(curriculoId)
                 .orElseGet(() -> criarNovaAnalise(curriculo));
         
-        // Envia para fila RabbitMQ
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfiguration.ANALISE_EXCHANGE,
-                RabbitMQConfiguration.ANALISE_ROUTING_KEY,
-                curriculoId
-        );
-        
         analise.setStatus(Analise.StatusAnalise.PROCESSANDO);
         analise = analiseRepository.save(analise);
         
+        try {
+            // Processamento síncrono com Groq AI
+            log.info("Processando análise com Groq AI...");
+            String resultadoJson = groqAIService.analisarCurriculo(curriculo);
+            
+            // Processa resultado
+            JsonNode root = objectMapper.readTree(resultadoJson);
+            
+            analise.setPontosFortesJson(root.path("pontoFortes").toString());
+            analise.setPontosMelhoriaJson(root.path("pontosMelhoria").toString());
+            analise.setMatchVagasJson(root.path("matchVagas").toString());
+            analise.setCapacitacoesJson(root.path("capacitacoes").toString());
+            analise.setStatus(Analise.StatusAnalise.CONCLUIDA);
+            
+            log.info("Análise concluída com sucesso para currículo ID: {}", curriculoId);
+        } catch (Exception e) {
+            log.error("Erro ao processar análise para currículo ID: {}", curriculoId, e);
+            analise.setStatus(Analise.StatusAnalise.ERRO);
+            analise.setMensagemErro(e.getMessage());
+        }
+        
+        analise = analiseRepository.save(analise);
         return mapToResponseDTO(analise);
     }
     
