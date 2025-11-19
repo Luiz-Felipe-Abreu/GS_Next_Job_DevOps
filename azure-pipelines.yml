@@ -65,12 +65,10 @@ stages:
         steps:
           - task: Docker@2
             inputs:
-              command: login
-              containerRegistry: acrNextJob
-          - task: Docker@2
-            inputs:
               command: buildAndPush
+              containerRegistry: acrNextJob
               repository: appnextjob
+              Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
               tags: |
                 latest
                 $(Build.BuildId)
