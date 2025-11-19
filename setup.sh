@@ -71,3 +71,4 @@ az container create \
 DB_FQDN=$(az container show --resource-group "$RG_NAME" --name "$DB_CONTAINER_NAME" --query ipAddress.fqdn -o tsv)
 
 echo "✅ Banco de dados criado com sucesso! ✅"
+echo "teste de commit"
