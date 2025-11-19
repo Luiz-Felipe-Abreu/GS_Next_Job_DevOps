@@ -302,33 +302,40 @@
                 <div class="result-content" id="resultContent"></div>
             </div>
         </div>
-    </div>    <script th:inline="javascript">
-        /*<![CDATA[*/
-        const form = document.getElementById('planoForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const loading = document.getElementById('loading');
-        const result = document.getElementById('result');
-        const resultContent = document.getElementById('resultContent');
-        const errorDiv = document.getElementById('error');
+    </div>    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('planoForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            const errorDiv = document.getElementById('error');
+            
+            if (!form) {
+                console.error('Formulário não encontrado!');
+                return;
+            }
 
-        // Função simples para formatar Markdown básico
-        function formatMarkdown(text) {
-            return text
-                // Títulos
-                .replace(/^### (.*$)/gm, '<h3 style="margin-top: 20px; margin-bottom: 10px; color: #2d3748; font-size: 18px;">$1</h3>')
-                .replace(/^## (.*$)/gm, '<h2 style="margin-top: 25px; margin-bottom: 12px; color: #2d3748; font-size: 22px;">$1</h2>')
-                .replace(/^# (.*$)/gm, '<h1 style="margin-top: 30px; margin-bottom: 15px; color: #2d3748; font-size: 26px;">$1</h1>')
-                // Negrito
-                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1a202c;">$1</strong>')
-                // Itálico
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                // Listas
-                .replace(/^- (.*$)/gm, '<li style="margin-left: 20px; margin-bottom: 5px;">$1</li>')
-                // Quebras de linha
-                .replace(/\n/g, '<br>')
-                // Links
-                .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline;">$1</a>');
-        }        form.addEventListener('submit', async (e) => {
+            // Função simples para formatar Markdown básico
+            function formatMarkdown(text) {
+                return text
+                    // Títulos
+                    .replace(/^### (.*$)/gm, '<h3 style="margin-top: 20px; margin-bottom: 10px; color: #2d3748; font-size: 18px;">$1</h3>')
+                    .replace(/^## (.*$)/gm, '<h2 style="margin-top: 25px; margin-bottom: 12px; color: #2d3748; font-size: 22px;">$1</h2>')
+                    .replace(/^# (.*$)/gm, '<h1 style="margin-top: 30px; margin-bottom: 15px; color: #2d3748; font-size: 26px;">$1</h1>')
+                    // Negrito
+                    .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1a202c;">$1</strong>')
+                    // Itálico
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    // Listas
+                    .replace(/^- (.*$)/gm, '<li style="margin-left: 20px; margin-bottom: 5px;">$1</li>')
+                    // Quebras de linha
+                    .replace(/\n/g, '<br>')
+                    // Links
+                    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline;">$1</a>');
+            }
+            
+            form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             console.log('Formulário enviado!');
@@ -410,7 +417,9 @@
                 submitBtn.textContent = '✨ Gerar Plano com IA';
             }
         });
-        /*]]>*/
+        
+        console.log('Event listener de submit adicionado com sucesso');
+    });
     </script>
 </body>
 </html>
