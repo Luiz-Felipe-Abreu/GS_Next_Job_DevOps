@@ -56,4 +56,28 @@ public class HomeController {
         }
         return "plano";
     }
+    
+    @GetMapping("/planos")
+    public String planos(@AuthenticationPrincipal OAuth2User principal, Model model) {
+        // Adiciona dados do usuário ao model
+        if (principal != null) {
+            String name = principal.getAttribute("name");
+            if (name == null || name.isBlank()) {
+                name = principal.getAttribute("login");
+            }
+            
+            String email = principal.getAttribute("email");
+            if (email == null || email.isBlank()) {
+                String login = principal.getAttribute("login");
+                email = login != null ? login + "@github.com" : "email@exemplo.com";
+            }
+            
+            String picture = principal.getAttribute("avatar_url");
+            
+            model.addAttribute("userName", name);
+            model.addAttribute("userEmail", email);
+            model.addAttribute("userPicture", picture);
+        }
+        return "planos";
+    }
 }
