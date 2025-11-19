@@ -373,11 +373,20 @@
                 const data = await response.json();
                 console.log('Dados recebidos:', data);
                 
+                // Verifica se há erro no status
+                if (data.status === 'ERRO') {
+                    throw new Error(data.conteudoGerado || 'Erro ao processar plano');
+                }
+                
                 // Renderiza o conteúdo gerado pela IA (em Markdown)
                 const conteudo = data.conteudoGerado || data.descricao || 'Plano gerado com sucesso!';
                 
                 if (!data.conteudoGerado) {
                     console.warn('conteudoGerado não encontrado, usando fallback');
+                }
+                
+                if (conteudo.includes('Erro ao gerar plano')) {
+                    throw new Error(conteudo);
                 }
                 
                 resultContent.innerHTML = formatMarkdown(conteudo);
@@ -387,10 +396,13 @@
                 setTimeout(() => {
                     result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }, 100);
+                
+                // Mostra mensagem de sucesso
+                alert('✅ Plano de carreira gerado com sucesso! Você também pode visualizá-lo em "Meus Planos".');
 
             } catch (error) {
                 console.error('Erro capturado:', error);
-                errorDiv.textContent = '❌ ' + error.message;
+                errorDiv.textContent = '❌ ' + error.message + '\n\nVerifique se a chave da API Groq está configurada corretamente nas variáveis de ambiente.';
                 errorDiv.classList.add('active');
             } finally {
                 loading.classList.remove('active');

@@ -2,6 +2,7 @@ package com.example.NextJobAPI.service;
 
 import com.example.NextJobAPI.dto.PlanoRequestDTO;
 import com.example.NextJobAPI.dto.PlanoResponseDTO;
+import com.example.NextJobAPI.exception.BusinessException;
 import com.example.NextJobAPI.exception.ResourceNotFoundException;
 import com.example.NextJobAPI.model.Plano;
 import com.example.NextJobAPI.model.Usuario;
@@ -45,17 +46,29 @@ public class PlanoService {
         // Gera o conteúdo com IA de forma síncrona
         try {
             log.info("Gerando conteúdo com Groq AI...");
+            log.info("Título: {}", request.getTitulo());
+            log.info("Descrição (primeiros 100 chars): {}", request.getDescricao().substring(0, Math.min(100, request.getDescricao().length())));
+            
             String conteudoIA = groqAIService.gerarPlanoCarreira(request.getTitulo(), request.getDescricao());
+            
+            if (conteudoIA == null || conteudoIA.isEmpty()) {
+                throw new BusinessException("IA retornou conteúdo vazio");
+            }
             
             salvo.setConteudoGerado(conteudoIA);
             salvo.setStatus("CONCLUIDO");
             salvo = planoRepository.save(salvo);
             
-            log.info("Conteúdo gerado com sucesso pela IA");
-        } catch (Exception e) {
-            log.error("Erro ao gerar conteúdo com IA: {}", e.getMessage());
+            log.info("Conteúdo gerado com sucesso pela IA - {} caracteres", conteudoIA.length());
+        } catch (BusinessException e) {
+            log.error("Erro de negócio ao gerar conteúdo com IA: {}", e.getMessage(), e);
             salvo.setStatus("ERRO");
-            salvo.setConteudoGerado("Erro ao gerar plano com IA: " + e.getMessage());
+            salvo.setConteudoGerado("Erro ao gerar plano com IA: " + e.getMessage() + "\n\nVerifique se a chave da API Groq está configurada corretamente.");
+            salvo = planoRepository.save(salvo);
+        } catch (Exception e) {
+            log.error("Erro inesperado ao gerar conteúdo com IA: {}", e.getMessage(), e);
+            salvo.setStatus("ERRO");
+            salvo.setConteudoGerado("Erro inesperado ao gerar plano com IA: " + e.getMessage());
             salvo = planoRepository.save(salvo);
         }
         
