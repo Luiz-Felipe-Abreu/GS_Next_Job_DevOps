@@ -1,4 +1,7 @@
+
 # NextJob API - Sistema de Recrutamento Inteligente 🎯
+
+![Diagrama de Arquitetura](image/image.png)
 
 Sistema completo de análise de currículos e recomendação de planos de carreira, desenvolvido com **Java + Spring Boot** e infraestrutura na **Azure** utilizando práticas modernas de **DevOps**.
 
