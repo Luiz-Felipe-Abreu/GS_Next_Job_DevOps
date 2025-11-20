@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+   <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -272,7 +272,7 @@
             <h1>🤖 Gerar Plano de Carreira com IA</h1>
             <p class="subtitle">Digite as informações do seu currículo e nossa IA Groq LLaMA 3.3 70B irá gerar um plano de carreira personalizado para você.</p>
 
-            <form id="planoForm">
+            <form id="planoForm" onsubmit="return false;">
                 <div class="form-group">
                     <label for="titulo">Título do Plano</label>
                     <input type="text" id="titulo" name="titulo" placeholder="Ex: Plano de Carreira para Desenvolvedor Full Stack" required>
