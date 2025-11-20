@@ -1,5 +1,6 @@
 # =========================================
 # TRIGGER: Quando o pipeline será executado
+# oi professor
 # =========================================
 # Executa automaticamente quando houver push na branch main
 trigger:
