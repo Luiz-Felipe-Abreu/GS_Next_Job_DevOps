@@ -419,19 +419,9 @@
             return div.innerHTML;
         }
 
-        async function verPlano(id) {
-            try {
-                const response = await fetch(`/api/planos/${id}`);
-                if (!response.ok) throw new Error('Erro ao carregar plano');
-                
-                const plano = await response.json();
-                
-                // Criar modal ou redirecionar para página de detalhes
-                alert('Conteúdo do Plano:\n\n' + (plano.conteudoGerado || plano.descricao));
-                
-            } catch (error) {
-                alert('Erro ao carregar plano: ' + error.message);
-            }
+        function verPlano(id) {
+            // Redireciona para a página de detalhes
+            window.location.href = `/planos/${id}`;
         }
 
         async function deletarPlano(id, event) {
