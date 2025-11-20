@@ -63,27 +63,29 @@ stages:
         dependsOn: gradleBuild
         condition: succeeded()
         steps:
-          # Build da imagem Docker
-          - task: Docker@2
-            displayName: 'Build Docker Image'
+          - task: AzureCLI@2
+            displayName: 'Build and Push Docker Image'
             inputs:
-              command: build
-              repository: $(IMAGE_NAME)
-              dockerfile: Dockerfile
-              tags: |
-                $(IMAGE_TAG)
-                $(Build.BuildId)
-          
-          # Push para Azure Container Registry
-          - task: Docker@2
-            displayName: 'Push to ACR'
-            inputs:
-              command: push
-              containerRegistry: '$(azureSubscription)'
-              repository: $(IMAGE_NAME)
-              tags: |
-                $(IMAGE_TAG)
-                $(Build.BuildId)
+              azureSubscription: '$(azureSubscription)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                set -euo pipefail
+
+                echo "Logging into ACR..."
+                az acr login --name $(ACR_NAME)
+
+                echo "Building Docker image..."
+                docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
+                            -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) \
+                            -f Dockerfile .
+
+                echo "Pushing images to ACR..."
+                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
+                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
+
+                echo "✅ Images pushed successfully!"
 
   - stage: Deploy_ACI
     displayName: CD - Deploy to Azure Container Instances
