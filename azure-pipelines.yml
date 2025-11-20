@@ -1,6 +1,8 @@
+# Dispara a pipeline quando houver commits na branch main
 trigger:
   - main
 
+# Configuração das variáveis de ambiente globais usadas no pipeline
 variables:
   GRADLE_USER_HOME: $(Pipeline.Workspace)/.gradle
   AZURE_LOCATION: eastus
@@ -15,15 +17,21 @@ variables:
   DB_NAME: nextjob
   DB_USER: nextjob
 
+# Definição dos estágios (Build → Deploy)
 stages:
+
+  # Estágio CI: compila o projeto e gera artefatos
   - stage: Build
     displayName: CI (build & tests)
     jobs:
+
+      # Job responsável por compilar o código Java com Gradle
       - job: gradleBuild
         pool:
           vmImage: ubuntu-latest
 
         steps:
+          # Configuração de cache do Gradle para acelerar builds futuros
           - task: Cache@2
             inputs:
               key: 'gradle | "$(Agent.OS)" | **/*.gradle*'
@@ -33,6 +41,7 @@ stages:
               path: $(GRADLE_USER_HOME)
             displayName: Configure gradle caching
 
+          # Executa o build da aplicação usando o Gradle Wrapper
           - task: Gradle@4
             inputs:
               gradleWrapperFile: "gradlew"
@@ -43,9 +52,11 @@ stages:
               jdkVersionOption: "1.21"
               sonarQubeRunAnalysis: false
 
+          # Finaliza processos pendentes do Gradle
           - script: ./gradlew --stop
             displayName: Gradlew stop
 
+          # Copia o JAR gerado para a pasta de artefatos
           - task: CopyFiles@2
             displayName: "Copy Files to artifact staging directory"
             inputs:
@@ -53,16 +64,20 @@ stages:
               Contents: "**/build/libs/*SNAPSHOT.jar"
               TargetFolder: $(Build.ArtifactStagingDirectory)
 
+          # Publica os artefatos para serem usados no próximo estágio
           - publish: $(Build.ArtifactStagingDirectory)
             artifact: nextjobApp
 
+      # Job responsável por montar e subir a imagem Docker para o ACR
       - job: BuildAndPushImage
         displayName: Build and push docker image
         pool:
           vmImage: ubuntu-latest
         dependsOn: gradleBuild
         condition: succeeded()
+
         steps:
+          # Login no Azure e build/push da imagem para o ACR
           - task: AzureCLI@2
             displayName: 'Build and Push Docker Image'
             inputs:
@@ -78,8 +93,8 @@ stages:
 
                 echo "Building Docker image..."
                 docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
-                            -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) \
-                            -f Dockerfile .
+                              -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) \
+                              -f Dockerfile .
 
                 echo "Pushing images to ACR..."
                 docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
@@ -87,18 +102,24 @@ stages:
 
                 echo "✅ Images pushed successfully!"
 
+  # Estágio CD: realiza o deploy da imagem Docker no Azure Container Instances
   - stage: Deploy_ACI
     displayName: CD - Deploy to Azure Container Instances
     dependsOn: Build
     condition: succeeded()
     jobs:
+
+      # Job de deploy da aplicação no ACI
       - job: Deploy
         displayName: Deploy App to ACI
         pool:
           vmImage: 'ubuntu-latest'
+
         steps:
+          # Não baixa o código do repositório (não é necessário nesta etapa)
           - checkout: none
 
+          # Script de deploy usando Azure CLI
           - task: AzureCLI@2
             displayName: 'Deploy Application to ACI'
             inputs:
@@ -109,50 +130,32 @@ stages:
               inlineScript: |
                 set -euo pipefail
 
-                # Listar subscriptions disponíveis
                 echo "Available subscriptions:"
                 az account list --output table
 
-                # Configurar subscription
                 echo "Setting Azure subscription..."
                 az account set --subscription "$(AZURE_SUBSCRIPTION_ID)" || {
                   echo "ERROR: Cannot set subscription $(AZURE_SUBSCRIPTION_ID)"
-                  echo "The service connection may not have access to this subscription."
-                  echo "Please verify the service connection configuration."
                   exit 1
                 }
 
                 echo "Active subscription:"
                 az account show
 
-                echo "Using resource group: $(RESOURCE_GROUP) in $(AZURE_LOCATION)"
-
-                # Obter credenciais do ACR
                 echo "Getting ACR credentials..."
                 ACR_USERNAME=$(az acr credential show --name "$(ACR_NAME)" --query username -o tsv)
                 ACR_PASSWORD=$(az acr credential show --name "$(ACR_NAME)" --query "passwords[0].value" -o tsv)
 
-                if [ -z "$ACR_USERNAME" ] || [ -z "$ACR_PASSWORD" ]; then
-                  echo "ERROR: Failed to get ACR credentials"
-                  exit 1
-                fi
-
-                echo "ACR Username: $ACR_USERNAME"
-
-                # Nome do container e DNS
                 APP_CONTAINER_NAME="aci-app-nextjob-rm$(RM)"
                 APP_DNS_LABEL="aci-app-nextjob-rm$(RM)"
 
-                # Excluir container anterior (para liberar DNS)
                 echo "Cleaning up previous container if it exists..."
                 az container delete --resource-group "$(RESOURCE_GROUP)" --name "$APP_CONTAINER_NAME" --yes 2>/dev/null || true
                 sleep 15
 
-                # Criar container da aplicação
                 APP_IMAGE="$(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)"
-                echo "Deploying application container: $APP_CONTAINER_NAME"
-                echo "Using image: $APP_IMAGE"
 
+                echo "Deploying application container: $APP_CONTAINER_NAME"
                 az container create \
                   --resource-group "$(RESOURCE_GROUP)" \
                   --name "$APP_CONTAINER_NAME" \
@@ -185,14 +188,11 @@ stages:
                   echo "Waiting for container to start..."
                   sleep 20
 
-                  # Verificar status
                   CONTAINER_STATE=$(az container show \
                     --resource-group "$(RESOURCE_GROUP)" \
                     --name "$APP_CONTAINER_NAME" \
                     --query "containers[0].instanceView.currentState.state" \
                     -o tsv)
-
-                  echo "Container state: $CONTAINER_STATE"
 
                   APP_FQDN=$(az container show \
                     --resource-group "$(RESOURCE_GROUP)" \
@@ -201,6 +201,7 @@ stages:
                     -o tsv)
 
                   APP_URL="http://${APP_FQDN}:8080"
+
                   echo ""
                   echo "✅ ============================================"
                   echo "✅ Application deployed successfully!"
