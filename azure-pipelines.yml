@@ -103,7 +103,7 @@ stages:
           # ----------------------------------------------------------
           # STEP 1.2.1: OBTER CREDENCIAIS DO ACR
           # ----------------------------------------------------------
-          # Usa AzureCLI para obter token de acesso do ACR sem precisar de subscription
+          # Usa AzureCLI para obter credenciais do ACR
           - task: AzureCLI@2
             displayName: 'Get ACR Credentials'
             inputs:
@@ -127,7 +127,7 @@ stages:
                 else
                   echo "⚠️ Could not get token, trying admin credentials..."
                   # Fallback: tenta obter credenciais admin (se habilitado)
-                  ACR_USERNAME=$(az acr credential show --name $(ACR_NAME) --query username -o tsv 2>/dev/null || echo "$(ACR_NAME)")
+                  ACR_USERNAME=$(az acr credential show --name $(ACR_NAME) --query username -o tsv 2>/dev/null)
                   ACR_PASSWORD=$(az acr credential show --name $(ACR_NAME) --query "passwords[0].value" -o tsv 2>/dev/null)
                   
                   if [ -z "$ACR_PASSWORD" ]; then
@@ -137,6 +137,8 @@ stages:
                     echo "2. Service Principal has AcrPull/AcrPush role on ACR"
                     exit 1
                   fi
+                  
+                  echo "✅ Got admin credentials successfully"
                 fi
                 
                 # Exportar credenciais
