@@ -100,31 +100,46 @@ stages:
         dependsOn: gradleBuild
         condition: succeeded() 
         steps:
-          # Usar Docker task ao invés de Azure CLI para evitar problemas de subscription
-          - task: Docker@2
-            displayName: 'Build Docker Image'
+          - task: AzureCLI@2
+            displayName: 'Build and Push Docker Image'
             inputs:
-              containerRegistry: '$(azureSubscription)'
-              repository: '$(IMAGE_NAME)'
-              command: 'build'
-              Dockerfile: 'Dockerfile'
-              tags: |
-                $(IMAGE_TAG)
-                $(Build.BuildId)
-          
-          - task: Docker@2
-            displayName: 'Push Docker Image to ACR'
-            inputs:
-              containerRegistry: '$(azureSubscription)'
-              repository: '$(IMAGE_NAME)'
-              command: 'push'
-              tags: |
-                $(IMAGE_TAG)
-                $(Build.BuildId)
+              azureSubscription: '$(azureSubscription)' 
+              scriptType: bash
+              scriptLocation: inlineScript
+              addSpnToEnvironment: true
+              inlineScript: |
+                # Aborta script se qualquer comando falhar
+                set -euo pipefail
+                
+                # ----------------------------------------------------------
+                # STEP 1.2.1: LOGIN NO AZURE CONTAINER REGISTRY
+                # ----------------------------------------------------------
+                # Autentica o Docker para permitir push de imagens
+                echo "Logging into ACR..."
+                az acr login --name $(ACR_NAME)
+                
+                # ----------------------------------------------------------
+                # STEP 1.2.2: BUILD DA IMAGEM DOCKER
+                # ----------------------------------------------------------
+                # Cria a imagem Docker a partir do Dockerfile
+                echo "Building Docker image..."
+                docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
+                            -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) \
+                            -f Dockerfile .
+                
+                # ----------------------------------------------------------
+                # STEP 1.2.3: PUSH DAS IMAGENS PARA O ACR
+                # ----------------------------------------------------------
+                # Envia as imagens para o repositório privado no Azure
+                echo "Pushing images to ACR..."
+                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
+                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
+                
+                echo "✅ Images pushed successfully!"
 
-  # ==============
+  # ============================================================================
   #  DEPLOY CD
-  # ==============
+  # ============================================================================
   # Faz o deploy da aplicação no Azure Container Instances
   - stage: Deploy_ACI
     displayName: CD - Deploy to Azure Container Instances
@@ -156,29 +171,14 @@ stages:
                 echo "Available subscriptions:"
                 az account list --output table
                 
-                # Verifica se tem acesso à subscription
-                echo "Checking subscription access..."
-                SUBSCRIPTION_CHECK=$(az account list --query "[?id=='$(AZURE_SUBSCRIPTION_ID)'].id" -o tsv)
-                
-                if [ -z "$SUBSCRIPTION_CHECK" ]; then
-                  echo "⚠️  WARNING: Service Principal does not have access to subscription $(AZURE_SUBSCRIPTION_ID)"
-                  echo "Attempting to use default subscription..."
-                  # Tenta usar a subscription padrão disponível
-                  FALLBACK_SUB=$(az account list --query "[0].id" -o tsv)
-                  if [ -n "$FALLBACK_SUB" ]; then
-                    echo "Using fallback subscription: $FALLBACK_SUB"
-                    az account set --subscription "$FALLBACK_SUB"
-                  else
-                    echo "❌ ERROR: No subscriptions available"
-                    echo "Please grant the Service Principal 'Contributor' role on subscription $(AZURE_SUBSCRIPTION_ID)"
-                    echo "Run: az role assignment create --assignee <service-principal-id> --role Contributor --scope /subscriptions/$(AZURE_SUBSCRIPTION_ID)"
-                    exit 1
-                  fi
-                else
-                  # Define qual subscription usar
-                  echo "Setting Azure subscription..."
-                  az account set --subscription "$(AZURE_SUBSCRIPTION_ID)"
-                fi
+                # Define qual subscription usar
+                echo "Setting Azure subscription..."
+                az account set --subscription "$(AZURE_SUBSCRIPTION_ID)" || {
+                  echo "ERROR: Cannot set subscription $(AZURE_SUBSCRIPTION_ID)"
+                  echo "The service connection may not have access to this subscription."
+                  echo "Please verify the service connection configuration."
+                  exit 1
+                }
                 
                 # Mostra subscription ativa
                 echo "Active subscription:"
