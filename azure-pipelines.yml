@@ -116,7 +116,22 @@ stages:
                 # ----------------------------------------------------------
                 # Autentica o Docker para permitir push de imagens
                 echo "Logging into ACR..."
-                az acr login --name $(ACR_NAME)
+                
+                # Verifica se tem acesso ao ACR
+                echo "Checking ACR access..."
+                ACR_CHECK=$(az acr list --query "[?name=='$(ACR_NAME)'].name" -o tsv 2>/dev/null || echo "")
+                
+                if [ -z "$ACR_CHECK" ]; then
+                  echo "⚠️  WARNING: Cannot access ACR $(ACR_NAME)"
+                  echo "Service Principal may need 'AcrPush' role"
+                  echo "Attempting login anyway..."
+                fi
+                
+                az acr login --name $(ACR_NAME) || {
+                  echo "❌ ERROR: Failed to login to ACR"
+                  echo "Please ensure the Service Principal has 'AcrPush' role on $(ACR_NAME)"
+                  exit 1
+                }
                 
                 # ----------------------------------------------------------
                 # STEP 1.2.2: BUILD DA IMAGEM DOCKER
@@ -171,14 +186,29 @@ stages:
                 echo "Available subscriptions:"
                 az account list --output table
                 
-                # Define qual subscription usar
-                echo "Setting Azure subscription..."
-                az account set --subscription "$(AZURE_SUBSCRIPTION_ID)" || {
-                  echo "ERROR: Cannot set subscription $(AZURE_SUBSCRIPTION_ID)"
-                  echo "The service connection may not have access to this subscription."
-                  echo "Please verify the service connection configuration."
-                  exit 1
-                }
+                # Verifica se tem acesso à subscription
+                echo "Checking subscription access..."
+                SUBSCRIPTION_CHECK=$(az account list --query "[?id=='$(AZURE_SUBSCRIPTION_ID)'].id" -o tsv)
+                
+                if [ -z "$SUBSCRIPTION_CHECK" ]; then
+                  echo "⚠️  WARNING: Service Principal does not have access to subscription $(AZURE_SUBSCRIPTION_ID)"
+                  echo "Attempting to use default subscription..."
+                  # Tenta usar a subscription padrão disponível
+                  FALLBACK_SUB=$(az account list --query "[0].id" -o tsv)
+                  if [ -n "$FALLBACK_SUB" ]; then
+                    echo "Using fallback subscription: $FALLBACK_SUB"
+                    az account set --subscription "$FALLBACK_SUB"
+                  else
+                    echo "❌ ERROR: No subscriptions available"
+                    echo "Please grant the Service Principal 'Contributor' role on subscription $(AZURE_SUBSCRIPTION_ID)"
+                    echo "Run: az role assignment create --assignee <service-principal-id> --role Contributor --scope /subscriptions/$(AZURE_SUBSCRIPTION_ID)"
+                    exit 1
+                  fi
+                else
+                  # Define qual subscription usar
+                  echo "Setting Azure subscription..."
+                  az account set --subscription "$(AZURE_SUBSCRIPTION_ID)"
+                fi
                 
                 # Mostra subscription ativa
                 echo "Active subscription:"
