@@ -103,7 +103,7 @@ stages:
           # ----------------------------------------------------------
           # STEP 1.2.1: OBTER CREDENCIAIS DO ACR
           # ----------------------------------------------------------
-          # Usa AzureCLI apenas para obter credenciais, sem precisar de subscription
+          # Usa AzureCLI para obter token de acesso do ACR sem precisar de subscription
           - task: AzureCLI@2
             displayName: 'Get ACR Credentials'
             inputs:
@@ -111,24 +111,38 @@ stages:
               scriptType: bash
               scriptLocation: inlineScript
               addSpnToEnvironment: true
+              failOnStandardError: false
               inlineScript: |
-                # Obter credenciais do ACR para autenticação Docker
-                echo "Getting ACR credentials..."
-                ACR_USERNAME=$(az acr credential show --name $(ACR_NAME) --query username -o tsv 2>/dev/null || echo "$(ACR_NAME)")
-                ACR_PASSWORD=$(az acr credential show --name $(ACR_NAME) --query "passwords[0].value" -o tsv 2>/dev/null || echo "")
+                set +e  # Não aborta em erro
                 
-                # Se não conseguir via CLI, tenta login direto
-                if [ -z "$ACR_PASSWORD" ]; then
-                  echo "Trying direct ACR login..."
-                  az acr login --name $(ACR_NAME) --expose-token --output tsv --query accessToken > /tmp/acr_token.txt
-                  ACR_PASSWORD=$(cat /tmp/acr_token.txt)
+                echo "Attempting to get ACR access token..."
+                
+                # Tenta obter token de acesso (não precisa de subscription)
+                TOKEN=$(az acr login --name $(ACR_NAME) --expose-token --output tsv --query accessToken 2>/dev/null)
+                
+                if [ -n "$TOKEN" ]; then
+                  echo "✅ Got ACR token successfully"
                   ACR_USERNAME="00000000-0000-0000-0000-000000000000"
+                  ACR_PASSWORD="$TOKEN"
+                else
+                  echo "⚠️ Could not get token, trying admin credentials..."
+                  # Fallback: tenta obter credenciais admin (se habilitado)
+                  ACR_USERNAME=$(az acr credential show --name $(ACR_NAME) --query username -o tsv 2>/dev/null || echo "$(ACR_NAME)")
+                  ACR_PASSWORD=$(az acr credential show --name $(ACR_NAME) --query "passwords[0].value" -o tsv 2>/dev/null)
+                  
+                  if [ -z "$ACR_PASSWORD" ]; then
+                    echo "❌ Could not get ACR credentials"
+                    echo "Please ensure:"
+                    echo "1. Admin user is enabled on ACR $(ACR_NAME)"
+                    echo "2. Service Principal has AcrPull/AcrPush role on ACR"
+                    exit 1
+                  fi
                 fi
                 
-                # Exportar como variáveis de saída para próximos steps
+                # Exportar credenciais
                 echo "##vso[task.setvariable variable=ACR_USERNAME;isOutput=true]$ACR_USERNAME"
                 echo "##vso[task.setvariable variable=ACR_PASSWORD;isOutput=true;issecret=true]$ACR_PASSWORD"
-                echo "ACR Username: $ACR_USERNAME"
+                echo "ACR Username configured: $ACR_USERNAME"
             name: acrCreds
           
           # ----------------------------------------------------------

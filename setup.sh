@@ -81,18 +81,18 @@ az container create \
   --resource-group "$RG_NAME" \
   --name "$DB_CONTAINER_NAME" \
   --image "${ACR_NAME}.azurecr.io/postgres:17-alpine" \
-  --cpu 1 --memory 2 \                
-  --registry-login-server "${ACR_NAME}.azurecr.io" \   
-  --registry-username "$ACR_USERNAME" \                 
-  --registry-password "$ACR_PASSWORD" \                
-  --environment-variables \                            
-    POSTGRES_PASSWORD="$DB_PASSWORD" \                  
-    POSTGRES_DB="$DB_NAME" \                          
-    POSTGRES_USER="$DB_USER" \                     
-  --ports 5432 \                                     
-  --os-type Linux \                                      
-  --dns-name-label "$DB_DNS_LABEL" \                   
-  --location "$LOCATION" \                                
+  --cpu 1 --memory 2 \
+  --registry-login-server "${ACR_NAME}.azurecr.io" \
+  --registry-username "$ACR_USERNAME" \
+  --registry-password "$ACR_PASSWORD" \
+  --environment-variables \
+    POSTGRES_PASSWORD="$DB_PASSWORD" \
+    POSTGRES_DB="$DB_NAME" \
+    POSTGRES_USER="$DB_USER" \
+  --ports 5432 \
+  --os-type Linux \
+  --dns-name-label "$DB_DNS_LABEL" \
+  --location "$LOCATION" \
   --restart-policy Always 
 
 # ================================
