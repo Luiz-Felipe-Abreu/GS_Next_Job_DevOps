@@ -1,6 +1,5 @@
 # =========================================
 # TRIGGER: Quando o pipeline será executado
-# oi professor
 # =========================================
 # Executa automaticamente quando houver push na branch main
 trigger:
@@ -101,42 +100,35 @@ stages:
         dependsOn: gradleBuild
         condition: succeeded() 
         steps:
-          - task: AzureCLI@2
-            displayName: 'Build and Push Docker Image'
+          # ----------------------------------------------------------
+          # STEP 1.2.1: BUILD DA IMAGEM DOCKER
+          # ----------------------------------------------------------
+          # Usa Docker@2 task que não precisa de permissões de subscription
+          # Apenas precisa de acesso ao Container Registry
+          - task: Docker@2
+            displayName: 'Build Docker Image'
             inputs:
-              azureSubscription: '$(azureSubscription)' 
-              scriptType: bash
-              scriptLocation: inlineScript
-              addSpnToEnvironment: true
-              inlineScript: |
-                # Aborta script se qualquer comando falhar
-                set -euo pipefail
-                
-                # ----------------------------------------------------------
-                # STEP 1.2.1: LOGIN NO AZURE CONTAINER REGISTRY
-                # ----------------------------------------------------------
-                # Autentica o Docker para permitir push de imagens
-                echo "Logging into ACR..."
-                az acr login --name $(ACR_NAME)
-                
-                # ----------------------------------------------------------
-                # STEP 1.2.2: BUILD DA IMAGEM DOCKER
-                # ----------------------------------------------------------
-                # Cria a imagem Docker a partir do Dockerfile
-                echo "Building Docker image..."
-                docker build -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG) \
-                            -t $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId) \
-                            -f Dockerfile .
-                
-                # ----------------------------------------------------------
-                # STEP 1.2.3: PUSH DAS IMAGENS PARA O ACR
-                # ----------------------------------------------------------
-                # Envia as imagens para o repositório privado no Azure
-                echo "Pushing images to ACR..."
-                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(IMAGE_TAG)
-                docker push $(ACR_LOGIN_SERVER)/$(IMAGE_NAME):$(Build.BuildId)
-                
-                echo "✅ Images pushed successfully!"
+              containerRegistry: '$(azureSubscription)'
+              repository: '$(IMAGE_NAME)'
+              command: 'build'
+              Dockerfile: 'Dockerfile'
+              tags: |
+                $(IMAGE_TAG)
+                $(Build.BuildId)
+          
+          # ----------------------------------------------------------
+          # STEP 1.2.2: PUSH DA IMAGEM PARA O ACR
+          # ----------------------------------------------------------
+          # Envia as imagens para o repositório privado no Azure
+          - task: Docker@2
+            displayName: 'Push Docker Image to ACR'
+            inputs:
+              containerRegistry: '$(azureSubscription)'
+              repository: '$(IMAGE_NAME)'
+              command: 'push'
+              tags: |
+                $(IMAGE_TAG)
+                $(Build.BuildId)
 
   # ============================================================================
   #  DEPLOY CD
